@@ -19,6 +19,7 @@
 \usepackage{setspace}
 \usepackage{siunitx}
 \usepackage{cleveref}
+\usepackage{placeins}
 
 \doublespacing
 \linenumbers
@@ -55,9 +56,9 @@ Christian Kuehn$^{1}$}
 \begin{abstract}
 The Atlantic Meridional Overturning Circulation (AMOC) is a critical component of the global climate system whose potential collapse constitutes one of the most consequential climate tipping points. Quantifying AMOC resilience, that is, its capacity to maintain the active circulation state under growing greenhouse-gas forcing, is therefore of high scientific and societal importance. Resilience is a multifaceted concept, encompassing notions such as basin stability, the minimal perturbation required to trigger a collapse, and characteristic recovery times. Whether these distinct metrics yield consistent, and therefore trustworthy, signals across models of different complexity has not been systematically examined.
 
-Here, we address this question by analyzing three models that span a hierarchy in physical complexity: (i) an analytically tractable 3-box salinity model, parameterized using model output from comprehensive models; (ii) the Earth system model of intermediate complexity CLIMBER-X, and (iii) the general circulation model PlaSim-LSG.
+Here, we address this question by analyzing four models that span a hierarchy in physical complexity: (i) an analytically tractable 3-box salinity model, parameterized using comprehensive-model output; (ii) a two-dimensional latitude-depth Boussinesq model of the overturning circulation; (iii) the Earth system model of intermediate complexity CLIMBER-X; and (iv) the general circulation model PlaSim-LSG.
 
-Across the hierarchy, we compute four complementary resilience metrics: local linear stability, convergence time, basin stability, and the minimal critical shock magnitude. \todo{Summarise main findings once results are available.} Our results suggest that \todo{conclusion statement}. These findings have direct implications for the detectability of an imminent AMOC collapse from observational or model-based early-warning signals.
+Across the hierarchy, we compute model-specific realizations of four complementary resilience concepts: local linear stability, convergence time, basin geometry or basin stability, and the distance from the on-state to the effective stability boundary. \todo{Summarise main findings once results are available.} Our results suggest that \todo{conclusion statement}. These findings have direct implications for the detectability of an imminent AMOC collapse from observational or model-based early-warning signals.
 \end{abstract}
 
 \textbf{Keywords:} Atlantic Meridional Overturning Circulation, tipping points, resilience, model hierarchy
@@ -83,7 +84,7 @@ Yet CSD-based indicators capture only the reaction of the system to small pertur
 
 In natural systems, controlled perturbation experiments are rarely feasible, making direct estimation of global resilience quantities from observations difficult. Numerical models, therefore, play an essential role. However, climate models span an enormous range of complexity, from analytically tractable conceptual models to full Earth system models (ESMs), and it is not obvious whether resilience metrics computed in simple models translate to their more complex counterparts, which include many additional feedbacks and degrees of freedom \citep{Stouffer2006InvestigatingCausesAMOC, Schneider2017EarthSystemModeling}. This is not a merely academic concern: if metrics disagree across the hierarchy, their utility as real-world system characteristics is severely limited. Several studies have examined individual resilience concepts in the context of the AMOC at specific levels of model complexity \citep{Rahmstorf2005AMOCHystersis, Lenton2008, Cimatoribus2014AMOCBoxModel, Boers2021AMOCEWS, Ditlevsen2023AMOCPrediction, Jacques-Dumas2024RareEventResilience}, but a systematic, multi-metric comparison across a model hierarchy is lacking.
 
-Our analysis combines three modelling approaches that span many orders of magnitude of model complexity: (i) a conceptual 3-box salinity model \citep{Wood20195BoxModel, Alkhayuon2019AMOCRateTipping} which allows exhaustive sampling of the full state space; (ii) large-ensemble trajectory simulations in CLIMBER-X, an Earth system model of intermediate complexity \citep{Willeit2022EarthSystemModel} that resolves three-dimensional ocean circulation and atmosphere–ocean feedbacks; and (iii) an analysis of existing transient convergence and equilibrium trajectories in PlaSim-LSG, a coupled general circulation model whose bistable AMOC, edge state, and stability landscape under varying \CO{} have been thoroughly characterized in recent work \citep{Borner2025AMOCGlobalStability}. The paper is structured as follows. Section~\ref{sec:methods} describes each model and the resilience metrics computed for it.  Section~\ref{sec:results} presents the results from each model. Section~\ref{sec:discussion} synthesizes the findings across the hierarchy and discusses implications for AMOC characterization and early-warning detection of potential tipping.
+Our analysis combines four modelling approaches that span many orders of magnitude of model complexity: (i) a conceptual 3-box salinity model \citep{Wood20195BoxModel, Alkhayuon2019AMOCRateTipping} which allows exhaustive sampling of the full two-dimensional state space; (ii) a latitude-depth Boussinesq model in which geographically coherent salinity perturbations can be applied over a dense grid of initial conditions; (iii) large-ensemble trajectory simulations in CLIMBER-X, an Earth system model of intermediate complexity \citep{Willeit2022EarthSystemModel} that resolves three-dimensional ocean circulation and atmosphere–ocean feedbacks; and (iv) an analysis of existing transient convergence and equilibrium trajectories in PlaSim-LSG, a coupled general circulation model whose bistable AMOC, edge state, and stability landscape under varying \CO{} have been thoroughly characterized in recent work \citep{Borner2025AMOCGlobalStability}. The paper is structured as follows. Section~\ref{sec:methods} describes each model and the resilience metrics computed for it. Section~\ref{sec:results} presents the results from each model. Section~\ref{sec:discussion} synthesizes the findings across the hierarchy and discusses implications for AMOC characterization and early-warning detection of potential tipping.
 
 % ============================================================
 \section{Methods}
@@ -93,9 +94,20 @@ Our analysis combines three modelling approaches that span many orders of magnit
 \subsection{Overview and general strategy}
 \label{sec:methods:overview}
 
-Our aim is to compute a common set of resilience metrics for each of the three models. Within each model, we compute the metrics for varying values of effective \CO{} forcing. This allows us to compare the resulting trends, which are likely more insightful than absolute values in arbitrary units. The metrics fall into two broad classes. Non-local metrics require model trajectories starting from many different initial conditions and measure the size or geometry of the basin of attraction. Local metrics are estimated from time series near the equilibrium and capture the statistical characteristics of the linearised dynamics. Local metrics are related to CSD and can, in principle, be estimated from a single long equilibrium or near-equilibrium run. For this reason, they have been the most popular avenue of assessing resilience in complex natural systems. Our ambition to include systematic estimates of non-local resilience concepts is central to our contribution.
+Our aim is to compute a common set of resilience concepts for each model while respecting the different experimental possibilities at each level of the hierarchy. Within each model, we repeat the analysis across a forcing coordinate: interpolated \CO{} parameters and freshwater hosing in the 3-box model, Arctic-amplification strength in the Boussinesq model, prescribed atmospheric \CO{} in CLIMBER-X, and the two available \CO{} levels in PlaSim-LSG. This allows us to compare directional trends, which are more meaningful across models than absolute values expressed in model-specific units.
+
+The metrics fall into two broad classes. Non-local metrics require model trajectories starting from many different initial conditions and measure the size, geometry, or effective boundary distance of the basin of attraction. Local metrics are estimated from time series near an equilibrium and capture the statistical characteristics of the linearised dynamics. Local metrics are related to CSD and can, in principle, be estimated from a single long equilibrium or near-equilibrium run. For this reason, they have been the most popular avenue of assessing resilience in complex natural systems. Our ambition to include systematic estimates of non-local resilience concepts is central to our contribution.
 
 All simulations are conducted at a discrete set of model parameter values. The AMOC on-state is the primary object of interest throughout, though all analyses are also reported for the off-state for completeness (see Supplementary Material).
+
+\begin{figure}[p]
+  \centering
+  \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{plots/perturbations_overview.pdf}
+  \caption{\textbf{Perturbation and diagnostic geometry across the model hierarchy.}
+  The overview compares the geographic salinity boxes, tapered restart perturbations, and reduced-state diagnostics used to construct comparable AMOC resilience experiments across the four models. CLIMBER-X uses grid-snapped Wood-box regions in the North Atlantic, Tropical Atlantic, and Southern Ocean compensation region; the Boussinesq model applies analogous smooth masks in latitude-depth space; and PlaSim-LSG is analysed in a reduced salinity-coordinate space derived from EOF-informed diagnostics.}
+  \label{fig:perturbations-overview}
+\end{figure}
+\FloatBarrier
 
 % ------------------------------------------------------------
 \subsection{3-Box salinity model}
@@ -117,24 +129,49 @@ q=&\,\frac{\lambda(\alpha(T_S-T_0)+\beta(S_N-S_S))}{1+\lambda\alpha\mu}\label{eq
 \end{align}
 where $V_N$ and $V_T$ are box volumes, $K_{i}$ are diffusive mixing coefficients, $F_i$ are prescribed freshwater fluxes, and $H$ is a freshwater hosing applied to the North Atlantic box (with a compensating flux applied to the Tropical box to conserve global salinity). The overturning flow $q$ (in $\text{m}^3\,\text{s}^{-1}$) depends on the meridional density contrast between the North and Tropical boxes, and $\alpha$ and $\beta$ in Eq.\eqref{eq: q} are thermal and haline expansion coefficients, and $\lambda$ is a hydraulic constant. The Heaviside function $\Theta$ separates the case of a positive or negative AMOC in Eqs. \eqref{eq: dS_N} and \eqref{eq: dS_T} because the sense of the overturning circulation determines which boxes exchange water. The full system, therefore, has a discontinuity in its right-hand side at $q = 0$.
 
-\citet{Wood20195BoxModel} and \citet{Alkhayuon2019AMOCRateTipping} calibrated two distinct parameter sets $\boldsymbol{\theta}_c$ for the model: one for a pre-industrial climate at $c=285$ppm \CO{} and one for a doubled-\CO{} ($c=570$ppm) climate. The two configurations differ in the prescribed box temperatures, the freshwater fluxes, and the mixing coefficients. To construct a continuum of models along the axis of increasing \CO{} concentrations, we linearly interpolate (and extrapolate) between the two parameter sets:
+\citet{Wood20195BoxModel} and \citet{Alkhayuon2019AMOCRateTipping} calibrated two distinct parameter sets $\boldsymbol{\theta}_c$ for the model: one for a pre-industrial climate and one for a doubled-\CO{} climate. The two configurations differ in the prescribed box temperatures, the freshwater fluxes, the box volumes, and the mixing coefficients. To construct a continuum of models along the axis of increasing \CO{} concentrations, we linearly interpolate (and extrapolate) between the two parameter sets:
 \begin{equation}
-  \boldsymbol{\theta}(c) = \boldsymbol{\theta}_{285}
-    + \left(\frac{c}{285}-1\right)\,\bigl(\boldsymbol{\theta}_{570}
-                  - \boldsymbol{\theta}_{285}\bigr).
+  \boldsymbol{\theta}(\tau) = \boldsymbol{\theta}_{1\times}
+    + \tau\,\bigl(\boldsymbol{\theta}_{2\times}
+                  - \boldsymbol{\theta}_{1\times}\bigr),
 \end{equation}
-We investigate the 3-box model using parameters $\boldsymbol{\theta}(c)$ at values $c\in[285, 969]$ in steps of $5.7$. We find a previously unknown bifurcation in this system at a \CO{} threshold of about $900$ppm.
+where $\tau=0$ denotes the pre-industrial parameter vector and $\tau=1$ denotes the doubled-\CO{} parameter vector. For plotting and synthesis we map this coordinate to an equivalent concentration scale $c(\tau)=280\,\text{ppm}+\tau(560-280)\,\text{ppm}$. The continuation experiments use $\tau\in[0,2.4]$ in increments of $0.05$, thereby following the on-state from the pre-industrial configuration through the doubled-\CO{} configuration and into an extrapolated high-\CO{} regime. In the cached continuation data the on-state branch loses basin support close to the upper end of this range, around $c\approx 900\,\text{ppm}$.
 
 \subsubsection{Resilience computation}
 
-All resilience calculations are performed using the \texttt{Attractors.jl} package \citep{Datseris2023FrameworkGlobalStability} within the \texttt{DynamicalSystems.jl} ecosystem.  Attractors are identified via the \texttt{AttractorsViaRecurrences} mapper on a rectangular grid of initial conditions spanning $S_N \in [-0.25, 0.15]$ (in units of $10^{-2}\,\psu{}$) and $S_T \in [-0.10, 0.70]$, with a resolution of $81 \times 161$ cells for the $1\times$\CO{}.  For 100 random points on the grid, the system is integrated forward using an implicit solver until convergence is detected by recurrence of grid cells. This routine is performed for each value $c$ of \CO{} concentration, continuing the on and off state branches. Having obtained the position of the on and off state attractors, we subsequently integrate 10,000 more initial conditions randomly drawn from the domain on which the previous grid was defined. This time, the convergence to one of the attractors is defined through $\varepsilon$-proximity in state space: A trajectory is said to have converged when the Euclidean distance in 2D state space to one of the attractors is smaller than $\varepsilon=0.01$. This forms the basis for the following concrete resilience computations:
+All resilience calculations are performed using the \texttt{Attractors.jl} package \citep{Datseris2023FrameworkGlobalStability} within the \texttt{DynamicalSystems.jl} ecosystem. Attractors are identified via the \texttt{AttractorsViaRecurrences} mapper on a rectangular grid of initial conditions spanning $S_N\in[-1,1]$ and $S_T\in[-0.1,2]$ in salinity-anomaly units, with $101\times106$ cells. The ODE is integrated with a Rosenbrock solver to handle the discontinuity at $q=0$. At each continuation step we use $100$ samples per parameter value to track attractors by global continuation and then compute resilience measures from $10\,000$ additional initial conditions drawn uniformly from the same state-space rectangle. Convergence to a known attractor is defined by $\varepsilon$-proximity in the two-dimensional salinity state space with $\varepsilon=0.01$.
+
+This workflow is run in two complementary ways. First, the \CO{} continuation follows $\boldsymbol{\theta}(\tau)$ from $\tau=0$ to $\tau=2.4$ and computes resilience measures along the warming trajectory. Second, a freshwater-hosing continuation varies $H$ from $0$ to $0.55\Sv{}$ in increments of $0.01\Sv{}$ separately for the $1\times$\CO{} and $2\times$\CO{} parameter vectors. The hosing scan is not used as a direct analogue of future forcing, but as a controlled bifurcation experiment that exposes how the on-basin changes under additional North Atlantic freshwater input.
+
+These experiments provide the following concrete resilience computations:
 \begin{enumerate}
-  \item \textbf{Linear stability}: estimation of local linear dynamics via forward integration.
-  \item \textbf{Convergence time}: the median of all convergence times to $\varepsilon$-proximity.
-  \item \textbf{Basin stability}: the fraction of the 10,000 initial conditions having converged to the on state.
-  \item \textbf{Minimal critical shock}: the smallest distance of the on state attractor to an initial condition that converged to the off state.
+  \item \textbf{Linear stability}: local stability of the continued on-attractor, estimated from the linearised return dynamics around the fixed point.
+  \item \textbf{Convergence time}: the median time needed for sampled trajectories to reach $\varepsilon$-proximity of the on-attractor.
+  \item \textbf{Convergence pace}: the inverse convergence-time measure returned by \texttt{Attractors.jl}, used to separate fast recovery from slow basin return.
+  \item \textbf{Basin stability}: the fraction of the $10\,000$ sampled initial conditions that converge to the on-state.
+  \item \textbf{Finite-time basin stability}: the fraction of sampled initial conditions that reach the on-attractor within a finite horizon of $1000$ model years.
+  \item \textbf{Minimal critical shock}: the shortest state-space distance from the on-attractor to an initial condition assigned to the off-basin.
 \end{enumerate}
-We plot all results in Fig.~\ref{fig: 3-boxRes}
+The trajectory-level 3-box model diagnostics are shown in Fig.~\ref{fig:box-paper}, while the cross-model \CO{} synthesis is summarized in Fig.~\ref{fig:synthesis}.
+
+% ------------------------------------------------------------
+\subsection{Boussinesq latitude-depth model}
+\label{sec:methods:boussinesq}
+% ------------------------------------------------------------
+
+\subsubsection{Model description}
+
+The second model is a two-dimensional latitude-depth Boussinesq model of the AMOC. The model resolves temperature, salinity, vorticity, and streamfunction on an $(M+1)\times(N+1)$ grid with $M=20$ latitude points and $N=40$ depth points, and is integrated with time step $\Delta t=10^{-3}$. It uses the non-dimensional salinity-forcing asymmetry $\beta=0.1$ and a seven-mode salinity-forcing configuration. This model is much less expensive than CLIMBER-X but already contains spatially structured salinity fields and an overturning streamfunction, making it a useful intermediate step between the conceptual box model and the three-dimensional climate models.
+
+We introduce a single external forcing parameter, denoted $\gamma$, that controls Arctic amplification of the imposed thermal profile. The experiments sweep $\gamma\in[0,0.1]$ in increments of $0.01$. For each value of $\gamma$, the model is spun up for $20\,000$ time steps from the same analytical initial condition to obtain an AMOC-on reference state. This reference state defines both the unperturbed streamfunction strength and the target box salinities used in the convergence criterion.
+
+\subsubsection{Resilience computation}
+
+Initial-condition perturbations are applied to two smooth geographic salinity masks. The North Atlantic mask covers the surface-intensified latitude interval $x\in[130/36,5]$, corresponding approximately to $40°$--$90°\text{N}$, and the Tropical Atlantic mask covers $x\in[40/36,130/36]$, corresponding approximately to $50°\text{S}$--$40°\text{N}$. Both masks have tanh lateral transitions with half-width $0.25$ in model latitude coordinates and are multiplied by the model's surface-layer decay profile in depth. Perturbations are applied as amplitudes $(\Delta s_\text{north},\Delta s_\text{trop})$ on a $15\times15$ grid with both coordinates spanning $[-0.75,0.75]$.
+
+For each grid point and each $\gamma$, the local anomaly is rescaled so that the mask-weighted box-mean salinity change equals the requested amplitude. A uniform compensating offset is then applied over the full domain so that the domain-mean salinity is exactly conserved. This mirrors the salt-budget constraint imposed in the CLIMBER-X experiments while remaining native to the Boussinesq model.
+
+Each perturbed run is integrated for at most $500\,000$ time steps. The integration is checked every $200$ time steps and is declared converged when the Euclidean distance between the current North/Tropical box-salinity vector and the unperturbed reference vector falls below $\varepsilon=10^{-3}$. Runs are also flagged if any grid point develops negative salinity. The stored quantities are the final overturning streamfunction, the convergence time in model time units, the North and Tropical box-salinity time series, and a categorical basin label based on the final AMOC strength. This produces $225$ perturbed trajectories for each of the $11$ Arctic-amplification values, or $2475$ perturbed integrations in total, with all scalar summaries cached to disk.
 
 % ------------------------------------------------------------
 \subsection{CLIMBER-X}
@@ -147,17 +184,25 @@ CLIMBER-X \citep{Willeit2022EarthSystemModel} is a fast Earth system model of in
 
 \subsubsection{Resilience computation}
 
-We investigate the model under \todo{X} different discrete \CO{} settings: $c\in[285\mathrm{ppm},360\mathrm{ppm}]$ in steps of $15\mathrm{ppm}.$ To map the basin of attraction in a physically meaningful two-dimensional subspace, we apply instantaneous salinity perturbations to two coherent ocean regions that correspond closely to the boxes of the conceptual model above: the North Atlantic box ($40°$–$90°\text{N}$, $80°\text{W}$–$20°\text{E}$, surface to full depth; hereafter $\Delta S_\text{NA}$) and the Tropical Atlantic box ($48°\text{S}$–$40°\text{N}$, $70°\text{W}$–$20°\text{E}$, surface to $\sim 1000\,\text{m}$ depth; hereafter $\Delta S_\text{Trop}$).
+We first equilibrate CLIMBER-X at prescribed atmospheric \CO{} concentrations. The production workflow is configured for the interval $285$--$360\,\text{ppm}$ in $15\,\text{ppm}$ increments, with the paper figures focusing on the endpoint climates $285\,\text{ppm}$ and $360\,\text{ppm}$. Each equilibrium run is integrated for up to $20\,000$ model years from the default pre-industrial restart. After equilibration, the trailing $500$ years of the annual ocean time series are used to store reference values for AMOC strength at $26°\text{N}$ and for the Wood-box salinity diagnostics.
 
-Perturbations are applied directly to the ocean restart file as uniform salinity anomalies (in \psu{}) within each region, creating an ensemble of modified initial conditions. We explore a two-dimensional grid of $(\Delta S_\text{NA}, \Delta S_\text{Trop})$ values spanning $\Delta S_\text{NA} \in [-2.5, 0.0]\psu{}$ in steps of $0.5\psu{}$ and $\Delta S_\text{Trop} \in [-1.5, 0.0]\psu{}$ in steps of $0.5\psu{}$, yielding \todo{N} experiments per \CO{} level.  The choice to freshen both boxes reflects the expected signature of increased ice-sheet melt and precipitation under greenhouse forcing, and mirrors the salinity perturbations commonly explored in the conceptual model. Each perturbed initial condition is integrated forward up to $10\,000\,\text{yr}$. 
-%To accelerate the experiments, an embedded in-job watcher monitors the AMOC strength at $26°\text{N}$ (following the RAPID array latitude) every $\sim 300\,\text{s}$ of wall-clock time ($\approx 100$–$200$ model years).  Convergence is declared when the trailing $200$-year mean of the overturning strength has a standard deviation below $0.5\Sv{}$ and the mean exceeds $12\Sv{}$ (on-state) or falls below $3\Sv{}$ (off-state); the model integration is then stopped early. Final classification uses a trailing $500$-year window.
+To map the basin of attraction in a physically meaningful two-dimensional subspace, we apply instantaneous salinity perturbations to two coherent ocean regions that correspond closely to the boxes of the conceptual model above. The full-depth Wood North Atlantic box spans $37.5°$--$90°\text{N}$ and $72.5°\text{W}$--$20°\text{E}$ over the full water column; the Wood Tropical Atlantic box spans $47.5°\text{S}$--$32.5°\text{N}$ and $72.5°\text{W}$--$20°\text{E}$ over the upper $875\,\text{m}$. These grid-snapped boundaries match the native $5°$ CLIMBER-X tracer grid and the corresponding Fortran diagnostics written to \texttt{ocn\_ts.nc}. We also define shallow variants of the same boxes over the upper $150\,\text{m}$, which are used as a sensitivity experiment.
 
-From the ensemble, we extract analog quantities to those computed for the conceptual model:
+Perturbations are applied directly to the ocean restart file as salinity anomalies in \psu{}, creating an ensemble of modified initial conditions. The primary grid uses
+\[
+  \Delta S_\text{NA}\in\{-2,-1,-0.2,-0.1,0\}\psu{},\qquad
+  \Delta S_\text{Trop}\in\{-1,-0.1,0,0.1,1\}\psu{},
+\]
+yielding $25$ experiments per \CO{} level and box-depth configuration. The perturbation masks may be applied uniformly or with a two-grid-cell horizontal and two-layer vertical cosine taper. In the tapered case, interior cells are boosted so that the volume-weighted mean anomaly over the target box remains exactly equal to the prescribed $\Delta S$. A third compensating perturbation is applied in a Southern Ocean box ($90°\text{S}$--$52.5°\text{S}$, all longitudes, upper $450\,\text{m}$ for the full-depth experiment) so that the global ocean salt content in the restart is conserved. This avoids an immediate correction by CLIMBER-X's internal salt renormalisation routine.
+
+Each perturbed initial condition is integrated forward for up to $5000$--$10\,000$ model years depending on the grid. The main state variable for classification is \texttt{amoc26N}. A run is classified as AMOC-on if the trailing $500$-year mean is at least $12\Sv{}$, AMOC-off if it is at most $3\Sv{}$, and ambiguous otherwise. For long production runs, an embedded watcher can stop a job early when the trailing $200$-year standard deviation of AMOC strength falls below $0.5\Sv{}$ and the mean lies clearly in either the on- or off-state range. The modified CLIMBER-X output additionally writes a year-$0$ instantaneous record to \texttt{ocn\_ts.nc}, so the initial box salinity anomaly can be verified directly from the model output before any dynamical adjustment has occurred.
+
+From the ensemble, we extract quantities analogous to those computed for the conceptual model:
 \begin{enumerate}
-  \item \textbf{Linear stability}: estimation of local linear dynamics via forward integration.
-  \item \textbf{Convergence time}: the median of all convergence times to $\varepsilon$-proximity.
-  \item \textbf{Basin stability}: the fraction of the 9 initial conditions having converged to the on state.
-  \item \textbf{Minimal critical shock}: the smallest distance of the on state attractor to an initial condition that converged to the off state.
+  \item \textbf{Linear stability}: a $2\times2$ Jacobian in the $(s_\text{woodNA},s_\text{woodTrop})$ plane, estimated from four short perturbation experiments with $\pm0.05\psu{}$ anomalies in each Wood box.
+  \item \textbf{Convergence time}: the first year at which the AMOC time series satisfies the convergence criterion, or the final integration time if convergence is not detected.
+  \item \textbf{Basin stability}: the fraction of classified grid points in the sampled perturbation rectangle that return to the AMOC-on state.
+  \item \textbf{Minimal critical shock}: the smallest Euclidean distance in $(\Delta S_\text{NA},\Delta S_\text{Trop})$ space between the unperturbed equilibrium and a grid point classified as AMOC-off, with the basin map used to localize the effective stability boundary.
 \end{enumerate}
 
 % ------------------------------------------------------------
@@ -167,13 +212,13 @@ From the ensemble, we extract analog quantities to those computed for the concep
 
 \subsubsection{Model and simulation data}
 
-The third level of the model hierarchy is provided by PlaSim-LSG \todo{Ref}, a coupled climate model of intermediate complexity comprising a spectral primitive-equation atmosphere (T21, $\approx 5.6°\times 5.6°$, 10 vertical levels) and the Large Scale Geostrophic (LSG) ocean \citep{Maier-Reimer1993MeanCirculationHamburg}, a full 3-D ocean circulation model at $3.5°\times 3.5°$ resolution with 22 vertical levels, coupled to a thermodynamic sea-ice scheme and a hydrological cycle.  With approximately $10^5$ degrees of freedom and a throughput of roughly 700 model years per CPU day, PlaSim-LSG occupies a middle ground between the EMICs and full ESMs.  A complete description of the model configuration, its AMOC bistability, and the edge-tracking procedure is given in \citet{Borner2025AMOCGlobalStability}, to which we refer the reader for full methodological details.
+The PlaSim-LSG component of the hierarchy is a coupled climate model of intermediate complexity \todo{Ref}, comprising a spectral primitive-equation atmosphere (T21, $\approx 5.6°\times 5.6°$, 10 vertical levels) and the Large Scale Geostrophic (LSG) ocean \citep{Maier-Reimer1993MeanCirculationHamburg}, a full 3-D ocean circulation model at $3.5°\times 3.5°$ resolution with 22 vertical levels, coupled to a thermodynamic sea-ice scheme and a hydrological cycle.  With approximately $10^5$ degrees of freedom and a throughput of roughly 700 model years per CPU day, PlaSim-LSG occupies a middle ground between the EMICs and full ESMs.  A complete description of the model configuration, its AMOC bistability, and the edge-tracking procedure is given in \citet{Borner2025AMOCGlobalStability}, to which we refer the reader for full methodological details.
 
 At $285\,\text{ppm}$ (pre-industrial) and $360\,\text{ppm}$ \CO{} (approximately present-day conditions), PlaSim-LSG exhibits a bistable AMOC with an on-state of $\approx 16\Sv{}$ and an off-state (partial collapse in the Subpolar Gyre) of $\approx 2\Sv{}$, both confirmed by 4000-year unforced simulations. \citet{Borner2025AMOCGlobalStability} applied the edge-tracking algorithm \citep{Lucarini2017EdgeTracking} to locate the edge state (Melancholia state) of the AMOC in PlaSim-LSG at $285\,\text{ppm}$ and $360\,\text{ppm}$.  The algorithm iteratively bisects pairs of trajectories converging to opposite attractors and tracks the resulting pseudotrajectory along the basin boundary until it converges to the edge state. The edge state is a chaotic saddle characterized by persistent centennial AMOC oscillations ($\approx 120$\,yr period, amplitude $3$–$10\Sv{}$), driven by atmosphere–ice–ocean interactions in the North Atlantic.
 
 \subsubsection{Resilience computation}
 
-From the final iterations of edge tracking at each \CO{} level, we extract pairs of \emph{edge tracks}: one converging to the on-state and one converging to the off-state, both initialized from near-boundary conditions that closely shadow the edge state before diverging. These trajectories provide a natural set of initial conditions from which resilience-relevant transient behavior can be quantified: they start close to the basin boundary and thus represent the most challenging recovery paths for the on-state. In total, we analyze 37 iterations (74 tracks) at $285\,\text{ppm}$ and 38 tracking iterations (yielding 76 tracks) at $360\,\text{ppm}$.
+From the final iterations of edge tracking at each \CO{} level, we extract pairs of \emph{edge tracks}: one converging to the on-state and one converging to the off-state, both initialized from near-boundary conditions that closely shadow the edge state before diverging. These trajectories provide a natural set of initial conditions from which resilience-relevant transient behavior can be quantified: they start close to the basin boundary and thus represent challenging recovery paths for the on-state. In total, we analyze 37 bisection iterations at $285\,\text{ppm}$ and 38 bisection iterations at $360\,\text{ppm}$, with two trajectories per iteration. Dedicated long equilibrium simulations of the AMOC-on, AMOC-off, and edge states at each \CO{} level provide the attractor clouds against which these transients are evaluated.
 
 Following \citet{Borner2025AMOCGlobalStability}, we project the high-dimensional model trajectories onto a physically interpretable three-dimensional state space spanned by:
 
@@ -183,15 +228,17 @@ Following \citet{Borner2025AMOCGlobalStability}, we project the high-dimensional
   \item the \emph{deep North Atlantic salinity anomaly} ($S'_\text{deep}$): the mean salinity anomaly relative to $35\,\text{g\,kg}^{-1}$ in the Atlantic basin north of $50°\text{N}$, below $1000\,\text{m}$ depth.
 \end{itemize}
 
-These variables are derived from an EOF analysis of the Atlantic salinity field from $20\,000$ years of edge-tracking simulations \citep{Borner2025AMOCGlobalStability}; they disentangle the on-, off-, and edge-state dynamics more cleanly than the raw AMOC strength alone and permit straightforward inter-model comparisons. The on-, off-, and edge-state regions are well separated in this space, with the edge state characterized by a higher vertical SG and a fresher deep North Atlantic than either attractor.
+These variables are derived from an EOF analysis of the Atlantic salinity field from $20\,000$ years of edge-tracking simulations \citep{Borner2025AMOCGlobalStability}; they disentangle the on-, off-, and edge-state dynamics more cleanly than the raw AMOC strength alone and permit straightforward inter-model comparisons. The on-, off-, and edge-state regions are well separated in this space, with the edge state characterized by a higher vertical SG and a fresher deep North Atlantic than either attractor. For the paper figures and the edge-distance metric, we work primarily in the leading two reduced coordinates, which are also the coordinates in which the covariance ellipses are visualized.
 
 \subsubsection{Resilience metrics}
 
-We use the edge-track data and long equilibrium runs from \citet{Borner2025AMOCGlobalStability} to compute the following resilience metrics, analogous to those derived from the box model and CLIMBER-X.
+We use the edge-track data and long equilibrium runs from \citet{Borner2025AMOCGlobalStability} to compute the following resilience metrics, analogous to those derived from the box model and CLIMBER-X but adapted to the available PlaSim-LSG data.
 
-\paragraph{Convergence time from the edge.} For each on-converging and off-converging track we define the convergence time $\tau_c$ as the first simulation year at which the trajectory enters and permanently remains within an $\varepsilon$-neighbourhood of the target attractor (estimated as the mean of all converged trajectories).  We use $\varepsilon_\text{on} = 0.1$ and $\varepsilon_\text{off} = 0.2$ (in the units of the reduced state space), chosen to be well inside the attractor cloud but large relative to short-term variability.  Because all tracks start from near the basin boundary — the most resilience-stressing initial condition — the mean convergence time $\langle\tau_c\rangle$ provides a measure of the \emph{worst-case recovery time} of the on-state and of the width of the on-basin in the transient-time sense.
+\paragraph{Gaussian state regions.} For each \CO{} level and each state (AMOC-on, AMOC-off, edge), we fit a Gaussian distribution to the corresponding equilibrium run in the reduced salinity space. The mean defines the state location and the covariance defines an ellipsoid. Unless otherwise stated, the analysis uses $3\sigma$ ellipsoids, i.e.\ points whose Mahalanobis distance from the state mean is at most three. These ellipsoids replace the fixed-radius $\varepsilon$ balls used in lower-dimensional models and account for the different internal variability of the on-, off-, and edge-state clouds.
 
-\paragraph{Edge-to-attractor distance.} The Euclidean distance in reduced state space between the starting point of each edge track and the estimated on-state (or off-state) position serves as a proxy for the distance of the on-state attractor from the basin boundary.  A decreasing edge-to-on-attractor distance under increasing \CO{} indicates that the basin boundary is closing in on the attractor, i.e.\ a loss of global resilience.
+\paragraph{Convergence time from the edge.} For each converged edge-track trajectory we define the convergence time $\tau_c$ as the transit time from the last visit inside the edge-state ellipsoid to the first entry into the target attractor ellipsoid. This definition removes the initial shadowing of the edge state and measures the recovery or collapse phase after the trajectory has committed to one side of the basin boundary. Because all tracks start near the basin boundary, the mean convergence time provides a boundary-conditioned recovery-time measure rather than a basin-wide average.
+
+\paragraph{Edge-to-attractor distance.} We define an edge-to-attractor distance as the gap between the surfaces of the fitted edge ellipsoid and the corresponding attractor ellipsoid in the leading reduced salinity coordinates. The distance is set to zero if the ellipsoids overlap. This gives a geometrical proxy for the distance between the attractor cloud and the effective basin boundary in the absence of a full perturbation grid.
 
 \paragraph{Local stability indicators.} From the long equilibrium runs at each \CO{} level we compute CSD-based local stability metrics from the detrended time series of the three reduced-state-space variables:
 
@@ -212,30 +259,77 @@ All four quantities are computed per reduced-state-space dimension and then aver
 \subsection{3-Box model: resilience trends along the \texorpdfstring{CO$_2$}{CO2} trajectory}
 \label{sec:results:boxmodel}
 
-\todo{Present results from \texttt{amoc3box\_co2\_continuation.jl}: how each of the five resilience metrics (BS, MCS, $\tilde{\tau}_c$, $\tilde{p}_c$, FTBS) evolves as $\tau$ increases from 0 ($1\times$CO2) to 1 ($2\times$CO2) and beyond.  Include figure showing AMOC strength and all five metrics as a function of $\tau$. Note the CO2 value at which the on-state disappears and at which basin stability first reaches zero.}
+\todo{Present results from \texttt{amoc3box\_co2\_continuation.jl}. The text should follow the continuation coordinate $\tau$ from $0$ ($1\times$\CO{}, $280\,\text{ppm}$) through $1$ ($2\times$\CO{}, $560\,\text{ppm}$) to the extrapolated high-\CO{} regime. Report the on-branch AMOC strength and the five exported resilience curves: basin stability, finite-time basin stability, median convergence time, median convergence pace, and minimal critical shock. State the \CO{} value at which the on-state branch is last present and the \CO{} value at which finite-time basin stability first approaches zero.}
 
-\todo{Present results from \texttt{amoc3box\_hosing\_scan.jl}: how the same metrics respond to increasing freshwater hosing $H$ for both $1\times$ and $2\times$CO2 configurations, illustrating the shift in the bifurcation point and the compression of the basin.}
+\todo{Present results from \texttt{amoc3box\_hosing\_scan.jl}. Compare the $1\times$\CO{} and $2\times$\CO{} systems under $H=0$--$0.55\Sv{}$ freshwater hosing. Emphasize how the hosing threshold, basin stability, finite-time basin stability, and minimal critical shock shift between the two background climates.}
+
+\begin{figure}[p]
+  \centering
+  \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{AMOCBox/plots/amocbox_paper.pdf}
+  \caption{\textbf{Three-box model basin geometry and transient recovery.}
+  Top panels show AMOC strength for three representative initial conditions at the $1\times$\CO{} and $2\times$\CO{} parameter settings, with dashed horizontal lines marking the on- and off-state equilibria. Bottom panels show the same trajectories in the two-dimensional salinity state space $(S_N,S_T)$, overlaid on the sampled basins of attraction; stars mark the attractor positions.}
+  \label{fig:box-paper}
+\end{figure}
+\FloatBarrier
+
+\subsection{Boussinesq model: perturbation-grid convergence under Arctic amplification}
+\label{sec:results:boussinesq}
+
+\todo{Present results from \texttt{AMOCBoussinesq/Boussinesq\_box.py} and \texttt{analyse\_convergence.py}. For each $\gamma\in[0,0.1]$, show the $15\times15$ $(\Delta s_\text{north},\Delta s_\text{trop})$ grid, final streamfunction, convergence time, negative-salinity flags, and any timed-out runs. Use the multi-\(\gamma\) summary to report how mean convergence time and the shape of the on-returning region change as Arctic amplification increases.}
+
+\begin{figure}[p]
+  \centering
+  \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{AMOCBoussinesq/plots/boussinesq_paper.pdf}
+  \caption{\textbf{Boussinesq model response to coherent salinity perturbations.}
+  Top panels show overturning strength for representative perturbed trajectories at the baseline and strongest Arctic-amplification settings. Bottom panels show the corresponding North Atlantic and Tropical Atlantic box-salinity phase portraits, with background colours indicating the final-state classification on the perturbation grid and stars marking the reference attractor positions.}
+  \label{fig:boussinesq-paper}
+\end{figure}
+\FloatBarrier
 
 \subsection{CLIMBER-X: basin mapping and local stability}
 \label{sec:results:climberx}
 
-\todo{Present the 2-D phase diagram in $(\Delta S_\text{NA}, \Delta S_\text{Trop})$ space showing the boundary between on-converging and off-converging runs.  Discuss how this boundary shifts between CO2 scenarios and what this implies for the effective basin stability. Report mean convergence times.  Include figure of basin map.}
+\todo{Present the CLIMBER-X Wood-box perturbation grids. For each available \CO{} level, report the $5\times5$ full-depth Wood-box grid with $\Delta S_\text{NA}\in\{-2,-1,-0.2,-0.1,0\}\psu{}$ and $\Delta S_\text{Trop}\in\{-1,-0.1,0,0.1,1\}\psu{}$, classified by the trailing $500$-year mean of \texttt{amoc26N}. Show the corresponding trajectories in $(s_\text{woodNA},s_\text{woodTrop})$ space and report the fraction of runs returning to the on-state, the first off-state grid point nearest the unperturbed equilibrium, and representative convergence times.}
 
-\todo{Report local stability indicators (lag-1 AC, variance) from the equilibrium CLIMBER-X runs and compare trends with the box model.}
+\todo{Report the local stability estimates from \texttt{run\_stability.py}: the $2\times2$ Jacobian fitted from the $\pm0.05\psu{}$ Wood-box perturbation experiments, its eigenvalues, and the implied dominant relaxation time. If shallow-box experiments are included, state whether the upper-$150\,\text{m}$ perturbation grid changes the basin classification relative to the full-depth grid.}
+
+\begin{figure}[p]
+  \centering
+  \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{AMOCClimberX/plots/climberx_paper.pdf}
+  \caption{\textbf{CLIMBER-X basin mapping in Wood-box salinity space.}
+  Top panels show \texttt{amoc26N} for representative perturbation experiments at the two displayed \CO{} levels, with dashed lines indicating the diagnosed on- and off-state AMOC strengths. Bottom panels show trajectories in the model-native Wood-box salinity diagnostics $(s_\text{woodNA},s_\text{woodTrop})$; final experiment endpoints are coloured by AMOC classification and stars mark the mean attractor positions inferred from completed runs.}
+  \label{fig:climberx-paper}
+\end{figure}
+\FloatBarrier
 
 \subsection{PlaSim: edge-state geometry and equilibrium variability}
 \label{sec:results:plasim}
 
-\todo{Present convergence time statistics (mean, spread) for on-and off-converging tracks at both CO2 levels.  Include bar chart comparing the two forcing levels.}
+\todo{Present convergence time statistics for PlaSim-LSG edge tracks at $285\,\text{ppm}$ and $360\,\text{ppm}$. Distinguish on-converging and off-converging trajectories and define the reported time as the transit from the last edge-ellipsoid visit to the first target-attractor-ellipsoid entry.}
 
-\todo{Present edge-to-attractor distances in EOF space and how they
-change between $285\,\text{ppm}$ and $360\,\text{ppm}$.  Include
-scatter plot in 2-D EOF space showing tracks, attractors, edge state,
-and $\varepsilon$-circles.}
+\todo{Present edge-to-attractor distances in the leading reduced salinity coordinates and how they change between $285\,\text{ppm}$ and $360\,\text{ppm}$. Include the 2-D phase portrait with filtered edge-track trajectories, the on/off/edge equilibrium clouds, and the fitted $3\sigma$ covariance ellipses.}
 
 \todo{Report local stability indicators from PlaSim-LSG equilibrium runs
-(total variance, dominant variance, lag-1 AC, integrated AC time) for
-both CO2 levels.}
+(total variance, dominant variance, lag-1 AC, integrated AC time, and
+ellipsoid volume) for both \CO{} levels and all three states where relevant.}
+
+\begin{figure}[p]
+  \centering
+  \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{AMOCPlaSim/plots/plasim_paper.pdf}
+  \caption{\textbf{PlaSim-LSG edge-state trajectories and covariance ellipses.}
+  Top panels show AMOC strength along filtered edge-track trajectories at $285\,\text{ppm}$ and $360\,\text{ppm}$ \CO{}. Bottom panels show the same transients in the leading reduced salinity coordinates, together with equilibrium-run clouds for the AMOC-on, AMOC-off, and edge states. Ellipses denote the fitted Gaussian state regions used to define convergence times and edge-to-attractor distances.}
+  \label{fig:plasim-paper}
+\end{figure}
+\FloatBarrier
+
+\begin{figure}[p]
+  \centering
+  \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{plots/synthesis_figure.pdf}
+  \caption{\textbf{Cross-model synthesis of AMOC resilience metrics.}
+  Model-specific resilience diagnostics are plotted against the relevant \CO{} coordinate where available. The figure juxtaposes AMOC strength, convergence-time information, stability-boundary or edge-distance proxies, and local variability or finite-time basin measures, providing the basis for assessing which resilience signals are coherent across the model hierarchy.}
+  \label{fig:synthesis}
+\end{figure}
+\FloatBarrier
 
 % ============================================================
 \section{Discussion}
@@ -295,15 +389,34 @@ $1\times$\CO{} and $2\times$\CO{} configurations, following
 \section{CLIMBER-X perturbation regions}
 \label{app:regions}
 
-The North Atlantic perturbation region spans
-$30°$–$65°\text{N}$, $80°\text{W}$–$20°\text{E}$, surface to
-approximately $500\,\text{m}$ depth.  The Tropical Atlantic region
-spans $48°\text{S}$–$40°\text{N}$, $70°\text{W}$–$20°\text{E}$,
-surface to approximately $200\,\text{m}$ depth.  These boundaries
-are chosen to match the North and Tropical boxes of the
-\citet{Wood20195BoxModel} model as closely as the model grid permits.
-Perturbations are applied as uniform salinity anomalies throughout
-the full volume of each region.
+The full-depth CLIMBER-X perturbation regions are grid-snapped versions of the
+Wood-box geometry used throughout the paper. The North Atlantic box spans
+$37.5°$--$90°\text{N}$ and $72.5°\text{W}$--$20°\text{E}$ over the full
+water column. The Tropical Atlantic box spans $47.5°\text{S}$--$32.5°\text{N}$
+and $72.5°\text{W}$--$20°\text{E}$ over the upper $875\,\text{m}$. The
+Southern compensation box spans $90°\text{S}$--$52.5°\text{S}$ over all
+longitudes and the upper $450\,\text{m}$. Shallow sensitivity experiments use
+the same horizontal boundaries but restrict all three boxes to the upper
+$150\,\text{m}$.
+
+The Python restart-modification code applies the same cell selections as the
+Fortran diagnostics in \texttt{ocn\_out.f90}. With tapering enabled, the
+horizontal margin is two $5°$ grid cells wide and the bottom taper of
+depth-limited boxes spans two vertical layers. All reported perturbation
+amplitudes are volume-weighted box-mean anomalies after this taper correction.
+
+\section{Boussinesq perturbation regions}
+\label{app:boussinesq_regions}
+
+The Boussinesq perturbation masks are defined in the model's non-dimensional
+latitude coordinate $x\in[0,5]$, where $x=0$ corresponds to $90°\text{S}$ and
+$x=5$ corresponds to $90°\text{N}$. The North Atlantic mask uses
+$x\in[130/36,5]$ and the Tropical Atlantic mask uses $x\in[40/36,130/36]$.
+These correspond approximately to $40°$--$90°\text{N}$ and
+$50°\text{S}$--$40°\text{N}$, respectively. Both masks are surface-intensified
+by the same vertical decay profile that enters the model's salinity forcing,
+and both are normalized so that the requested perturbation amplitude equals
+the mask-weighted box-mean salinity change.
 
 \section{PlaSim-LSG reduced state space}
 \label{app:eof}
