@@ -1,0 +1,12 @@
+[submodule "AMOCBox"]
+	path = AMOCBox
+	url = https://github.com/andreasmorr/AMOCBox.git
+[submodule "AMOCPlaSim"]
+	path = AMOCPlaSim
+	url = https://github.com/andreasmorr/AMOCPlaSim.git
+[submodule "BoussinesqAMOC"]
+	path = BoussinesqAMOC
+	url = https://github.com/andreasmorr/BoussinesqAMOC.git
+[submodule "CLIMBER-X_AMOC"]
+	path = CLIMBER-X_AMOC
+	url = https://github.com/andreasmorr/CLIMBER-X_AMOC.git
