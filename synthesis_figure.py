@@ -236,7 +236,8 @@ def main() -> None:
         framealpha=0.8,
     )
 
-    out_path = UMBRELLA / "synthesis_figure.pdf"
+    out_path = UMBRELLA / "plots" / "synthesis_figure.pdf"
+    (UMBRELLA / "plots").mkdir(exist_ok=True)
     savefig_pdf(fig, out_path)
     plt.close(fig)
 
