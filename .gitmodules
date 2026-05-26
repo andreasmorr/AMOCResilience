@@ -4,9 +4,9 @@
 [submodule "AMOCPlaSim"]
 	path = AMOCPlaSim
 	url = https://github.com/andreasmorr/AMOCPlaSim.git
-[submodule "BoussinesqAMOC"]
-	path = BoussinesqAMOC
-	url = https://github.com/andreasmorr/BoussinesqAMOC.git
-[submodule "CLIMBER-X_AMOC"]
-	path = CLIMBER-X_AMOC
-	url = https://github.com/andreasmorr/CLIMBER-X_AMOC.git
+[submodule "AMOCBoussinesq"]
+	path = AMOCBoussinesq
+	url = https://github.com/andreasmorr/AMOCBoussinesq.git
+[submodule "AMOCClimberX"]
+	path = AMOCClimberX
+	url = https://github.com/andreasmorr/AMOCClimberX.git
