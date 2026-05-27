@@ -73,7 +73,7 @@ TRAJ_COLORS = ["#1B7837", "#762A83", "#E08214"]  # green, purple, orange
 # ---------------------------------------------------------------------------
 
 PANEL_SIZE   = 3.0    # width = height of the square phase-space panels
-TOP_HEIGHT   = 1.2    # height of the time-series top row
+TOP_HEIGHT   = 1.4    # height of the time-series top row
 LEFT_MARGIN  = 0.65   # room for y-axis label
 RIGHT_MARGIN = 0.15
 TOP_MARGIN   = 0.35
