@@ -17,7 +17,6 @@ from pathlib import Path
 
 import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 
 # ---------------------------------------------------------------------------
 # Global rcParams — call apply_style() once at import time
@@ -69,8 +68,18 @@ BASIN_OFF_FILL = "#FDDBC7"   # pale orange fill for off-basin
 
 TRAJ_COLORS = ["#1B7837", "#762A83", "#E08214"]  # green, purple, orange
 
-# Figure width for double-column LaTeX (inches)
-FIGURE_WIDTH = 7.2
+# ---------------------------------------------------------------------------
+# Hard-coded panel size constants (all in inches)
+# ---------------------------------------------------------------------------
+
+PANEL_SIZE   = 3.0    # width = height of the square phase-space panels
+TOP_HEIGHT   = 1.2    # height of the time-series top row
+LEFT_MARGIN  = 0.65   # room for y-axis label
+RIGHT_MARGIN = 0.15
+TOP_MARGIN   = 0.35
+BOT_MARGIN   = 0.50
+H_GAP        = 0.45   # vertical gap between the two rows
+W_GAP        = 0.05   # horizontal gap between columns (shared y → minimal)
 
 # ---------------------------------------------------------------------------
 # Layout helpers
@@ -78,39 +87,65 @@ FIGURE_WIDTH = 7.2
 
 def make_paper_figure(
     ncols: int = 2,
-    top_height: float = 1.4,
-    bottom_height: float = 3.0,
+    panel_size: float = PANEL_SIZE,
+    top_height: float = TOP_HEIGHT,
+    left_margin: float = LEFT_MARGIN,
+    right_margin: float = RIGHT_MARGIN,
+    top_margin: float = TOP_MARGIN,
+    bot_margin: float = BOT_MARGIN,
+    h_gap: float = H_GAP,
+    w_gap: float = W_GAP,
+    sharey_bottom: bool = True,
+    sharey_top: bool = True,
 ) -> tuple:
     """
-    Create the standard 4-panel (2-row × ncols) paper figure.
+    Create the standard 4-panel (2-row × ncols) paper figure with hard-coded
+    absolute panel sizes.
+
+    Layout (all dimensions in inches):
+      - Top row:    ncols panels, each panel_size wide and top_height tall
+      - Bottom row: ncols perfectly square panels (panel_size × panel_size)
+      - Bottom panels share the y-axis when sharey_bottom=True
 
     Returns
     -------
     fig : matplotlib.figure.Figure
-    axes_top : list of ncols Axes  (AMOC strength vs time)
-    axes_bottom : list of ncols Axes  (2-D phase space, square aspect)
+    axes_top    : list of ncols Axes  (time-series row)
+    axes_bottom : list of ncols Axes  (square phase-space row, shared y)
     """
-    total_height = top_height + bottom_height + 0.35 * FIGURE_WIDTH
-    fig = plt.figure(figsize=(FIGURE_WIDTH, total_height))
+    fig_w = left_margin + ncols * panel_size + (ncols - 1) * w_gap + right_margin
+    fig_h = top_margin + top_height + h_gap + panel_size + bot_margin
+    fig = plt.figure(figsize=(fig_w, fig_h))
 
-    gs = gridspec.GridSpec(
-        2, ncols,
-        figure=fig,
-        height_ratios=[top_height, bottom_height],
-        hspace=0.35,
-        wspace=0.08,
-        left=0.10,
-        right=0.97,
-        top=0.93,
-        bottom=0.08,
-    )
+    def fx(x): return x / fig_w   # inches → figure x-fraction
+    def fy(y): return y / fig_h   # inches → figure y-fraction
 
-    axes_top    = [fig.add_subplot(gs[0, c]) for c in range(ncols)]
-    axes_bottom = [fig.add_subplot(gs[1, c]) for c in range(ncols)]
+    # ── Bottom row (create first so sharey reference axis exists) ────────────
+    axes_bottom = []
+    for c in range(ncols):
+        sharey_ax = axes_bottom[0] if (sharey_bottom and c > 0) else None
+        ax = fig.add_axes(
+            [fx(left_margin + c * (panel_size + w_gap)),
+             fy(bot_margin),
+             fx(panel_size),
+             fy(panel_size)],
+            sharey=sharey_ax,
+        )
+        ax.set_aspect("equal", adjustable="datalim")
+        axes_bottom.append(ax)
 
-    # Square aspect for phase-space panels
-    for ax in axes_bottom:
-        ax.set_aspect("equal", adjustable="box")
+    # ── Top row ──────────────────────────────────────────────────────────────
+    axes_top = []
+    for c in range(ncols):
+        sharey_ax = axes_top[0] if (sharey_top and c > 0) else None
+        ax = fig.add_axes(
+            [fx(left_margin + c * (panel_size + w_gap)),
+             fy(bot_margin + panel_size + h_gap),
+             fx(panel_size),
+             fy(top_height)],
+            sharey=sharey_ax,
+        )
+        axes_top.append(ax)
 
     return fig, axes_top, axes_bottom
 
