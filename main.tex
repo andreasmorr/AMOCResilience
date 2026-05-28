@@ -20,6 +20,7 @@
 \usepackage{siunitx}
 \usepackage{cleveref}
 \usepackage{placeins}
+\usepackage{rotating}
 
 \doublespacing
 \linenumbers
@@ -100,6 +101,70 @@ All simulations are conducted at a discrete set of model parameter values. The A
   The overview compares the geographic salinity boxes, tapered restart perturbations, and reduced-state diagnostics used to construct comparable AMOC resilience experiments across the four models. CLIMBER-X uses grid-snapped Wood-box regions in the North Atlantic, Tropical Atlantic, and Southern Ocean compensation region; the Boussinesq model applies analogous smooth masks in latitude-depth space; and PlaSim-LSG is analysed in a reduced salinity-coordinate space derived from EOF-informed diagnostics.}
   \label{fig:perturbations-overview}
 \end{figure}
+\FloatBarrier
+
+\begin{sidewaystable}[p]
+  \centering
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \caption{\textbf{Overview of physical representations and resilience-metric implementations across the model hierarchy.}
+           Rows correspond to the three salinity regions used to define perturbations (top) and the four resilience concepts
+           computed in this study (bottom). Columns give a heuristic interpretation and the model-specific implementation
+           or estimation procedure for each entry.}
+  \label{tab:overview}
+  \begin{tabular}{p{2.3cm} p{4.2cm} p{3.9cm} p{3.9cm} p{3.9cm} p{3.9cm}}
+    \toprule
+    & \textbf{Heuristic description} & \textbf{3-Box model} & \textbf{Boussinesq} & \textbf{CLIMBER-X} & \textbf{PlaSim-LSG} \\
+    \midrule
+    \multicolumn{6}{l}{\textit{Salinity regions}} \\[3pt]
+    North Atlantic box
+      & High-latitude Atlantic where NADW forms; salinity $S_N$ sets the meridional density gradient driving the overturning.
+      & State variable $S_N$ (anomaly re $35\,\psu$); box volume $V_N$; receives freshwater hosing $H$.
+      & Smooth tanh mask, ${\approx}40°$--$90°$N, surface-intensified; $\Delta S_N\in[-0.25,0.25]$ on a $15{\times}15$ grid.
+      & $37.5°$--$90°$N, $72.5°$W--$20°$E, full depth; $\Delta S_N\in\{-2,{-1},{-0.2},{-0.1},0\}\,\psu$.
+      & Subpolar $40°$--$80°$N (upper $1000\,\mathrm{m}$) enters SG$_\mathrm{mer}$; NA $46°$--$66°$N enters SG$_\mathrm{vert}$;
+        no direct perturbation applied. \\[6pt]
+    Tropical Atlantic box
+      & Low- to mid-latitude Atlantic; salinity $S_T$ contrast with $S_N$ sets the overturning strength $q$.
+      & State variable $S_T$; box volume $V_T$; receives compensating hosing $bH$.
+      & Smooth tanh mask, ${\approx}50°$S--$40°$N, surface-intensified; $\Delta S_T\in[-0.25,0.25]$.
+      & $47.5°$S--$32.5°$N, $72.5°$W--$20°$E, upper $875\,\mathrm{m}$; $\Delta S_T\in\{-1,{-0.1},0,0.1,1\}\,\psu$.
+      & Tropical $0°$--$20°$N (upper $1000\,\mathrm{m}$) enters SG$_\mathrm{mer}$; no direct perturbation applied. \\[6pt]
+    Southern Ocean box
+      & Closes the salt budget; receives a compensating perturbation to conserve total ocean salinity.
+      & Salinity $S_S$ slaved to $S_N$ and $S_T$ via salt conservation; not a free dynamical variable.
+      & No explicit box; a uniform offset over the full domain conserves domain-mean salinity after each perturbation.
+      & $90°$S--$52.5°$S, all longitudes, upper $450\,\mathrm{m}$; receives offsetting perturbation for salt conservation.
+      & Compensation implicit in full 3-D ocean dynamics; no explicit box defined. \\[3pt]
+    \midrule
+    \multicolumn{6}{l}{\textit{Resilience metrics}} \\[3pt]
+    Linear stability
+      & Magnitude of the least stable eigenvalue at the on-state fixed point; decreases toward zero as a bifurcation is approached (CSD).
+      & Eigenvalue of the Jacobian at the on-state fixed point, computed analytically from the model equations.
+      & Not separately estimated; local stability inferred from the convergence rate of near-equilibrium trajectories.
+      & $2{\times}2$ Jacobian estimated from $\pm0.05\,\psu$ Wood-box perturbation pairs; dominant eigenvalue gives the relaxation timescale.
+      & Estimated from long equilibrium run statistics: total variance, lag-1 AC, and integrated autocorrelation time. \\[6pt]
+    Convergence time
+      & Time for a perturbed trajectory to return to the on-state; encodes both local and global basin geometry.
+      & Median return time across $10\,000$ uniform initial conditions; convergence at $\varepsilon=0.01$ proximity in $(S_N,S_T)$.
+      & Integration time until the $(S_N,S_T)$ vector is within $\varepsilon=10^{-3}$ of the reference state; max $5{\times}10^5$ time steps.
+      & Recovery time of perturbed restarts in $2000$-yr runs; final state classified by $500$-yr trailing AMOC mean at $26°$N.
+      & Transit time from last edge-ellipsoid visit to first on-state ellipsoid entry; from $37$--$38$ bisection tracks per \CO{} level. \\[6pt]
+    Basin volume
+      & Fraction of a reference state-space region converging to the on-state; measures the size of the basin of attraction.
+      & Fraction of $10\,000$ uniform samples in $(S_N,S_T)\in[25,45]\times[34,55]\,\psu$ converging to the on-state.
+      & Fraction of $15{\times}15$ grid points in $(\Delta S_N,\Delta S_T)\in[-0.25,0.25]^2$ returning to the on-state.
+      & Fraction of $25$ perturbation experiments per \CO{} level classified as on-state after $2000$-yr integration.
+      & Not directly computed; basin geometry inferred from edge-state distances and equilibrium attractor clouds. \\[6pt]
+    Minimal critical shock
+      & Smallest instantaneous perturbation moving the system out of the basin of attraction; distance from the on-state to the basin boundary.
+      & Minimum Euclidean distance in $(S_N,S_T)$ space to the basin boundary, computed via \texttt{Attractors.jl}.
+      & Minimum perturbation amplitude on the $15{\times}15$ grid that fails to return to the on-state.
+      & Minimum Wood-box perturbation from the $5{\times}5$ grid leading to off-state classification.
+      & Distance from the on-state to the edge state in (SG$_\mathrm{mer}$, SG$_\mathrm{vert}$) coordinates at each \CO{} level. \\
+    \bottomrule
+  \end{tabular}
+\end{sidewaystable}
 \FloatBarrier
 
 % ------------------------------------------------------------
