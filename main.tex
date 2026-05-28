@@ -102,7 +102,7 @@ All simulations are conducted at a discrete set of model parameter values. The A
 
 \begin{figure}[p]
   \centering
-  \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{plots/perturbations_overview.pdf}
+  \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{perturbations_overview.pdf}
   \caption{\textbf{Perturbation and diagnostic geometry across the model hierarchy.}
   The overview compares the geographic salinity boxes, tapered restart perturbations, and reduced-state diagnostics used to construct comparable AMOC resilience experiments across the four models. CLIMBER-X uses grid-snapped Wood-box regions in the North Atlantic, Tropical Atlantic, and Southern Ocean compensation region; the Boussinesq model applies analogous smooth masks in latitude-depth space; and PlaSim-LSG is analysed in a reduced salinity-coordinate space derived from EOF-informed diagnostics.}
   \label{fig:perturbations-overview}
@@ -164,6 +164,13 @@ The trajectory-level 3-box model diagnostics are shown in Fig.~\ref{fig:box-pape
 The second model is a two-dimensional latitude-depth Boussinesq model of the AMOC. The model resolves temperature, salinity, vorticity, and streamfunction on an $(M+1)\times(N+1)$ grid with $M=20$ latitude points and $N=40$ depth points, and is integrated with time step $\Delta t=10^{-3}$. It uses the non-dimensional salinity-forcing asymmetry $\beta=0.1$ and a seven-mode salinity-forcing configuration. This model is much less expensive than CLIMBER-X but already contains spatially structured salinity fields and an overturning streamfunction, making it a useful intermediate step between the conceptual box model and the three-dimensional climate models.
 
 We introduce a single external forcing parameter, denoted $\gamma$, that controls Arctic amplification of the imposed thermal profile. The experiments sweep $\gamma\in[0,0.1]$ in increments of $0.01$. For each value of $\gamma$, the model is spun up for $20\,000$ time steps from the same analytical initial condition to obtain an AMOC-on reference state. This reference state defines both the unperturbed streamfunction strength and the target box salinities used in the convergence criterion.
+
+To connect the model's forcing parameter to an observationally meaningful scale, we derive an explicit mapping between atmospheric \CO{} concentration $C$ and $\gamma$. Arctic amplification reduces the equator-to-pole sea-surface temperature (SST) gradient; $\gamma$ measures this reduction as a fraction of the pre-industrial gradient $\Delta T_0$. Following the chain $C \to \Delta T_\text{global} \to \Delta T_\text{pole} \to \Delta\text{gradient} \to \gamma$, with global warming given by the logarithmic forcing formula $\Delta T_\text{global}=\text{ECS}\log_2(C/C_0)$ and polar SST amplification $\alpha_\text{sst}$, one obtains
+\begin{equation}
+  \gamma(C) = \frac{(\alpha_\text{sst}-1)\,\text{ECS}}{\Delta T_0}\log_2\!\left(\frac{C}{C_0}\right).
+  \label{eq:co2_gamma}
+\end{equation}
+We adopt the IPCC AR6 best-estimate equilibrium climate sensitivity $\text{ECS}=3.0\,^{\circ}\text{C}$ per CO$_2$ doubling \citep{Forster2021IPCCAR6Ch7}, a polar ocean-surface amplification factor $\alpha_\text{sst}=2.0$ consistent with observations of Arctic SST warming being approximately two- to threefold the global-mean SST increase \citep{Meredith2019IPCCSROCC}, and a pre-industrial Atlantic equator-to-pole SST difference $\Delta T_0=30\,^{\circ}\text{C}$ (approximate Levitus climatology value). These choices yield the compact formula $\gamma(C)=0.1\log_2(C/280\,\text{ppm})$, so that $\gamma=0$ corresponds to pre-industrial \CO{} ($C_0=280\,\text{ppm}$) and $\gamma=0.1$ to a doubling of \CO{} ($C=560\,\text{ppm}$). Key benchmarks are: Keeling-curve start (1958, $315\,\text{ppm}$) $\to \gamma\approx0.017$; first IPCC report (1990, $354\,\text{ppm}$) $\to \gamma\approx0.033$; present day ($\sim$2023, $420\,\text{ppm}$) $\to \gamma\approx0.059$. The model sweep $\gamma\in[0,0.1]$ therefore spans the range from pre-industrial to doubled-\CO{} conditions, with the present-day forcing level falling near the upper half of the sweep.
 
 \subsubsection{Resilience computation}
 
@@ -265,7 +272,7 @@ All four quantities are computed per reduced-state-space dimension and then aver
 
 \begin{figure}[p]
   \centering
-  \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{AMOCBox/plots/amocbox_paper.pdf}
+  \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{amocbox_paper.pdf}
   \caption{\textbf{Three-box model basin geometry and transient recovery.}
   Top panels show AMOC strength for three representative initial conditions at the $1\times$\CO{} and $2\times$\CO{} parameter settings, with dashed horizontal lines marking the on- and off-state equilibria. Bottom panels show the same trajectories in the two-dimensional salinity state space $(S_N,S_T)$, overlaid on the sampled basins of attraction; stars mark the attractor positions.}
   \label{fig:box-paper}
@@ -279,7 +286,7 @@ All four quantities are computed per reduced-state-space dimension and then aver
 
 \begin{figure}[p]
   \centering
-  \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{AMOCBoussinesq/plots/boussinesq_paper.pdf}
+  \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{boussinesq_paper.pdf}
   \caption{\textbf{Boussinesq model response to coherent salinity perturbations.}
   Top panels show overturning strength for representative perturbed trajectories at the baseline and strongest Arctic-amplification settings. Bottom panels show the corresponding North Atlantic and Tropical Atlantic box-salinity phase portraits, with background colours indicating the final-state classification on the perturbation grid and stars marking the reference attractor positions.}
   \label{fig:boussinesq-paper}
@@ -295,7 +302,7 @@ All four quantities are computed per reduced-state-space dimension and then aver
 
 \begin{figure}[p]
   \centering
-  \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{AMOCClimberX/plots/climberx_paper.pdf}
+  \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{climberx_paper.pdf}
   \caption{\textbf{CLIMBER-X basin mapping in Wood-box salinity space.}
   Top panels show \texttt{amoc26N} for representative perturbation experiments at the two displayed \CO{} levels, with dashed lines indicating the diagnosed on- and off-state AMOC strengths. Bottom panels show trajectories in the model-native Wood-box salinity diagnostics $(s_\text{woodNA},s_\text{woodTrop})$; final experiment endpoints are coloured by AMOC classification and stars mark the mean attractor positions inferred from completed runs.}
   \label{fig:climberx-paper}
@@ -315,7 +322,7 @@ ellipsoid volume) for both \CO{} levels and all three states where relevant.}
 
 \begin{figure}[p]
   \centering
-  \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{AMOCPlaSim/plots/plasim_paper.pdf}
+  \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{plasim_paper.pdf}
   \caption{\textbf{PlaSim-LSG edge-state trajectories and covariance ellipses.}
   Top panels show AMOC strength along filtered edge-track trajectories at $285\,\text{ppm}$ and $360\,\text{ppm}$ \CO{}. Bottom panels show the same transients in the leading reduced salinity coordinates, together with equilibrium-run clouds for the AMOC-on, AMOC-off, and edge states. Ellipses denote the fitted Gaussian state regions used to define convergence times and edge-to-attractor distances.}
   \label{fig:plasim-paper}
@@ -324,7 +331,7 @@ ellipsoid volume) for both \CO{} levels and all three states where relevant.}
 
 \begin{figure}[p]
   \centering
-  \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{plots/synthesis_figure.pdf}
+  \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{synthesis_figure.pdf}
   \caption{\textbf{Cross-model synthesis of AMOC resilience metrics.}
   Model-specific resilience diagnostics are plotted against the relevant \CO{} coordinate where available. The figure juxtaposes AMOC strength, convergence-time information, stability-boundary or edge-distance proxies, and local variability or finite-time basin measures, providing the basis for assessing which resilience signals are coherent across the model hierarchy.}
   \label{fig:synthesis}
