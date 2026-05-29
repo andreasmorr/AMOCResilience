@@ -119,6 +119,12 @@ BOXES = {
                   depth_max=450.0, color=BOX_COLOR_SOUTH, label="WOOD_SOUTH"),
 }
 
+# Atlantic-only subset for globe panels a and b (no Southern Ocean ring)
+BOXES_ATLANTIC = {
+    "NA":   BOXES["NA"],
+    "Trop": BOXES["Trop"],
+}
+
 BOXES_SHALLOW = {
     "NA":    dict(lat_min=37.5,  lat_max=90.0,  lon_min=-72.5, lon_max=20.0,
                   depth_max=150.0, color=BOX_COLOR_NA,    label="WOOD_NA_SHALLOW"),
@@ -233,9 +239,12 @@ BOUS_NORTH_LO = 130.0 / 36.0   # ≈ 3.611  →  40°N
 BOUS_NORTH_HI = 5.0             #             90°N
 BOUS_TROP_LO  = 40.0  / 36.0   # ≈ 1.111  → −50°S
 BOUS_TROP_HI  = 130.0 / 36.0   # ≈ 3.611  →  40°N
+BOUS_SOUTH_LO = -1.0            #             (below domain → clamped to 90°S)
+BOUS_SOUTH_HI = 40.0  / 36.0   # ≈ 1.111  → −50°S
 
 BOUS_NORTH_MASK = bous_box_mask(BOUS_NORTH_LO, BOUS_NORTH_HI)   # (21, 41)
 BOUS_TROP_MASK  = bous_box_mask(BOUS_TROP_LO,  BOUS_TROP_HI)    # (21, 41)
+BOUS_SOUTH_MASK = bous_box_mask(BOUS_SOUTH_LO, BOUS_SOUTH_HI)   # (21, 41)
 
 # Convert Boussinesq x to degrees latitude for axis labels
 BOUS_LAT_DEG = BOUS_XX / 5.0 * 180.0 - 90.0    # (21,)
@@ -406,27 +415,28 @@ def draw_section(ax, box_dict, taper=False, depth_max_plot=None, label_depths=Tr
 def draw_boussinesq_panel(ax):
     """
     2D contourf plot of the Boussinesq box masks in (latitude, normalised depth).
-    North Atlantic box: Blues colormap.  Tropical box: Oranges colormap.
+    Southern box: Greens.  Tropical box: Oranges.  North Atlantic box: Blues.
     """
     XX, ZZ = np.meshgrid(BOUS_LAT_DEG, BOUS_ZZ)   # both (41, 21)
     mask_n = BOUS_NORTH_MASK.T   # (41, 21) so shape matches meshgrid
     mask_t = BOUS_TROP_MASK.T
+    mask_s = BOUS_SOUTH_MASK.T
 
-    # Transparency overlay: first North, then Tropical
     levels = np.linspace(0.0, 1.0, 21)
-    cf_t = ax.contourf(XX, ZZ, mask_t, levels=levels, cmap="Oranges",
-                       alpha=0.85, zorder=2)
-    cf_n = ax.contourf(XX, ZZ, mask_n, levels=levels, cmap="Blues",
-                       alpha=0.85, zorder=3)
+    # Draw back-to-front so North Atlantic is on top
+    ax.contourf(XX, ZZ, mask_s, levels=levels, cmap="Greens",  alpha=0.85, zorder=2)
+    ax.contourf(XX, ZZ, mask_t, levels=levels, cmap="Oranges", alpha=0.85, zorder=3)
+    ax.contourf(XX, ZZ, mask_n, levels=levels, cmap="Blues",   alpha=0.85, zorder=4)
 
-    # Box boundary lines at box edges (latitude only — vertical lines)
+    # Box boundary lines (latitude only — vertical lines)
     for x_edge, col in [
+        (BOUS_SOUTH_HI / 5.0 * 180 - 90, BOX_COLOR_SOUTH),
         (BOUS_TROP_LO  / 5.0 * 180 - 90, BOX_COLOR_TROP),
         (BOUS_TROP_HI  / 5.0 * 180 - 90, BOX_COLOR_TROP),
         (BOUS_NORTH_LO / 5.0 * 180 - 90, BOX_COLOR_NA),
         (BOUS_NORTH_HI / 5.0 * 180 - 90, BOX_COLOR_NA),
     ]:
-        ax.axvline(x_edge, color=col, linewidth=1.0, linestyle=":", alpha=0.7, zorder=5)
+        ax.axvline(x_edge, color=col, linewidth=1.0, linestyle=":", alpha=0.7, zorder=6)
 
     ax.set_facecolor("#f0f0f0")
     ax.set_xlim(-90, 90)
@@ -444,8 +454,9 @@ def draw_boussinesq_panel(ax):
     ax.axvline(0, color="gray", linewidth=0.4, linestyle="--", alpha=0.5)
 
     handles = [
-        mpatches.Patch(color=BOX_COLOR_NA,   alpha=0.75, label="North Atlantic box"),
-        mpatches.Patch(color=BOX_COLOR_TROP, alpha=0.75, label="Tropical box"),
+        mpatches.Patch(color=BOX_COLOR_NA,    alpha=0.75, label="North Atlantic box"),
+        mpatches.Patch(color=BOX_COLOR_TROP,  alpha=0.75, label="Tropical box"),
+        mpatches.Patch(color=BOX_COLOR_SOUTH, alpha=0.75, label="Southern Ocean box"),
     ]
     ax.legend(handles=handles, fontsize=7, loc="lower left",
               framealpha=0.85, edgecolor="#cccccc")
@@ -504,8 +515,8 @@ def main():
     # ── Column 1: non-tapered Wood boxes ──────────────────────────────────
     ax = axes_top[0]
     setup_globe(ax)
-    draw_boxes_on_globe(ax, BOXES)
-    box_legend(ax, BOXES)
+    draw_boxes_smooth(ax, BOXES_ATLANTIC)   # smooth shapely fill, Atlantic only
+    box_legend(ax, BOXES_ATLANTIC)
     ax.set_title("CLIMBER-X  |  non-tapered boxes", fontsize=8, fontweight="bold")
     add_panel_label(ax, panel_labels_top[0])
 
@@ -519,8 +530,8 @@ def main():
     # ── Column 2: Boussinesq context ──────────────────────────────────────
     ax = axes_top[1]
     setup_globe(ax)
-    draw_boxes_on_globe(ax, BOXES)
-    box_legend(ax, BOXES)
+    draw_boxes_smooth(ax, BOXES_ATLANTIC)   # identical to panel a
+    box_legend(ax, BOXES_ATLANTIC)
     ax.set_title("Boussinesq  |  geographic box areas", fontsize=8, fontweight="bold")
     add_panel_label(ax, panel_labels_top[1])
 
