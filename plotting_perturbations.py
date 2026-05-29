@@ -481,18 +481,23 @@ def draw_section(ax, box_dict, taper=False, depth_max_plot=None, label_depths=Tr
 # Boussinesq 2D panel
 # ---------------------------------------------------------------------------
 
+BOUS_DEPTH_SCALE = 3000.0   # normalised depth 1 corresponds to this many metres
+
 def draw_boussinesq_panel(ax):
     """
-    2D contourf plot of the Boussinesq box masks in (latitude, normalised depth).
-    Southern box: Greens.  Tropical box: Oranges.  North Atlantic box: Blues.
+    2D contourf plot of the Boussinesq box masks.
+    Y-axis is in physical metres (norm_depth × BOUS_DEPTH_SCALE) so that the
+    axis can be shared with the meridional section panels.  Tick labels show
+    the original normalised-depth values.
     """
-    XX, ZZ = np.meshgrid(BOUS_LAT_DEG, BOUS_ZZ)   # both (41, 21)
-    mask_n = BOUS_NORTH_MASK.T   # (41, 21) so shape matches meshgrid
+    # Scale normalised depth to metres for the shared y-axis
+    ZZ_m = BOUS_ZZ * BOUS_DEPTH_SCALE          # (41,) in metres
+    XX, ZZm = np.meshgrid(BOUS_LAT_DEG, ZZ_m)  # both (41, 21)
+    mask_n = BOUS_NORTH_MASK.T
     mask_t = BOUS_TROP_MASK.T
     mask_s = BOUS_SOUTH_MASK.T
 
-    # Start levels above 0 so that zero-value cells are left unfilled (transparent).
-    # Skip the pale end of each colormap so filled regions are visibly dark.
+    # Start levels above 0 so zero-value cells are left unfilled (transparent).
     levels = np.linspace(0.05, 1.0, 20)
 
     cmap_s = LinearSegmentedColormap.from_list("south_dark",
@@ -502,15 +507,14 @@ def draw_boussinesq_panel(ax):
     cmap_n = LinearSegmentedColormap.from_list("north_dark",
         plt.cm.Blues(np.linspace(0.30, 1.0, 256)))
 
-    # Draw back-to-front so North Atlantic is on top
-    ax.contourf(XX, ZZ, mask_s, levels=levels, cmap=cmap_s, alpha=0.95, zorder=2,
+    ax.contourf(XX, ZZm, mask_s, levels=levels, cmap=cmap_s, alpha=0.95, zorder=2,
                 extend="neither")
-    ax.contourf(XX, ZZ, mask_t, levels=levels, cmap=cmap_t, alpha=0.95, zorder=3,
+    ax.contourf(XX, ZZm, mask_t, levels=levels, cmap=cmap_t, alpha=0.95, zorder=3,
                 extend="neither")
-    ax.contourf(XX, ZZ, mask_n, levels=levels, cmap=cmap_n, alpha=0.95, zorder=4,
+    ax.contourf(XX, ZZm, mask_n, levels=levels, cmap=cmap_n, alpha=0.95, zorder=4,
                 extend="neither")
 
-    # Box boundary lines (latitude only — vertical lines)
+    # Latitude boundary lines
     for x_edge, col in [
         (BOUS_SOUTH_HI / 5.0 * 180 - 90, BOX_COLOR_SOUTH),
         (BOUS_TROP_LO  / 5.0 * 180 - 90, BOX_COLOR_TROP),
@@ -522,20 +526,28 @@ def draw_boussinesq_panel(ax):
 
     ax.set_facecolor("#f0f0f0")
     ax.set_xlim(-90, 90)
-    ax.set_ylim(1.0, 0.0)   # depth increases downward
+    # ylim set externally to match shared axis (2000 m); depth increases downward
     ax.set_xlabel("Latitude", fontsize=8)
     ax.set_ylabel("Normalised depth", fontsize=8)
 
-    ticks = np.arange(-90, 91, 30)
-    ax.set_xticks(ticks)
+    lat_ticks = np.arange(-90, 91, 30)
+    ax.set_xticks(lat_ticks)
     ax.set_xticklabels(
-        [f"{abs(t)}°{'N' if t >= 0 else 'S'}" for t in ticks], fontsize=6.5
+        [f"{abs(t)}°{'N' if t >= 0 else 'S'}" for t in lat_ticks], fontsize=6.5
     )
-    ax.set_yticks([0.0, 0.25, 0.5, 0.75, 1.0])
-    ax.set_yticklabels(["0", "0.25", "0.5", "0.75", "1.0"], fontsize=6.5)
+
+    # Y-ticks: positions in metres, labelled with normalised-depth values
+    norm_tick_vals = [0.0, 0.25, 0.5, 0.75, 1.0]
+    ax.set_yticks([v * BOUS_DEPTH_SCALE for v in norm_tick_vals])
+    ax.set_yticklabels([str(v) for v in norm_tick_vals], fontsize=6.5)
+
     ax.axvline(0, color="gray", linewidth=0.4, linestyle="--", alpha=0.5)
 
-    pass  # legend handled by figure-level legend
+    # Annotation: correspondence between normalised depth and metres
+    ax.text(0.98, 0.02, f"norm. depth 1 ≡ {int(BOUS_DEPTH_SCALE)} m",
+            transform=ax.transAxes, fontsize=6.5, ha="right", va="bottom",
+            color="#444444", style="italic",
+            bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.7, ec="none"))
 
 
 # ---------------------------------------------------------------------------
@@ -596,7 +608,7 @@ def main():
     add_panel_label(ax, panel_labels_top[0])
 
     ax = axes_bot[0]
-    draw_section(ax, BOXES, taper=False, depth_max_plot=None, label_depths=True)
+    draw_section(ax, BOXES, taper=False, depth_max_plot=2000, label_depths=True)
     ax.set_ylabel("Depth (m)", fontsize=8)
     ax.set_title("Meridional section (28°W)", fontsize=8)
     add_panel_label(ax, panel_labels_bot[0])
@@ -622,7 +634,7 @@ def main():
     add_panel_label(ax, panel_labels_top[2])
 
     ax = axes_bot[2]
-    draw_section(ax, BOXES_SHALLOW, taper=True, depth_max_plot=320, label_depths=True)
+    draw_section(ax, BOXES_SHALLOW, taper=True, depth_max_plot=2000, label_depths=True)
     ax.set_ylabel("Depth (m)", fontsize=8)
     ax.set_title("Meridional section (28°W)", fontsize=8)
     add_panel_label(ax, panel_labels_bot[2])
@@ -643,6 +655,16 @@ def main():
     ax.set_xlabel("Latitude", fontsize=8)
     ax.set_ylabel("Depth (m)", fontsize=8)
     add_panel_label(ax, panel_labels_bot[3])
+
+    # ── Shared y-axis for bottom panels e, f, g (depth 0–2000 m) ──────────
+    # Panel f uses metres internally (norm_depth × 3000), so ylim [2000, 0]
+    # aligns it with the section panels.
+    for ax in axes_bot[:3]:
+        ax.set_ylim(2000, 0)
+    # Remove redundant y-axis labels on f and g (shared with e)
+    for ax in axes_bot[1:3]:
+        ax.set_ylabel("")
+        ax.tick_params(labelleft=False)
 
     # ── Central legend between the two rows ───────────────────────────────
     legend_handles = [
