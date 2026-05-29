@@ -152,12 +152,13 @@ BOXES = {
                   depth_max=450.0, color=BOX_COLOR_SOUTH, label="WOOD_SOUTH"),
 }
 
-# Globe panels a and b: all three boxes, Tropical extended to 37.5°N to close
-# the 5° gap between Tropical (ends 32.5°N) and NA (starts 37.5°N).
+# Globe panels a and b: all three boxes with gaps closed.
+#   Tropical: lat_max extended 32.5°N → 37.5°N (closes gap with NA)
+#   South:    lat_max extended -52.5°S → -47.5°S (closes gap with Tropical)
 BOXES_GLOBE = {
     "NA":    BOXES["NA"],
     "Trop":  {**BOXES["Trop"], "lat_max": 37.5},
-    "South": BOXES["South"],
+    "South": {**BOXES["South"], "lat_max": -47.5},
 }
 
 # Atlantic-only subset (kept for reference)
@@ -534,13 +535,7 @@ def draw_boussinesq_panel(ax):
     ax.set_yticklabels(["0", "0.25", "0.5", "0.75", "1.0"], fontsize=6.5)
     ax.axvline(0, color="gray", linewidth=0.4, linestyle="--", alpha=0.5)
 
-    handles = [
-        mpatches.Patch(color=BOX_COLOR_NA,    alpha=0.75, label="North Atlantic box"),
-        mpatches.Patch(color=BOX_COLOR_TROP,  alpha=0.75, label="Tropical box"),
-        mpatches.Patch(color=BOX_COLOR_SOUTH, alpha=0.75, label="Southern Ocean box"),
-    ]
-    ax.legend(handles=handles, fontsize=7, loc="lower left",
-              framealpha=0.85, edgecolor="#cccccc")
+    pass  # legend handled by figure-level legend
 
 
 # ---------------------------------------------------------------------------
@@ -593,58 +588,53 @@ def main():
     panel_labels_top = ["(a)", "(b)", "(c)", "(d)"]
     panel_labels_bot = ["(e)", "(f)", "(g)", "(h)"]
 
-    # ── Column 1: non-tapered Wood boxes ──────────────────────────────────
+    # ── Column 1: Box model regions ───────────────────────────────────────
     ax = axes_top[0]
     setup_globe(ax)
     draw_boxes_fine_grid(ax, BOXES_GLOBE)
-    box_legend(ax, BOXES_GLOBE)
-    ax.set_title("CLIMBER-X  |  non-tapered boxes", fontsize=8, fontweight="bold")
+    ax.set_title("Box model regions (Wood et al.)", fontsize=8, fontweight="bold")
     add_panel_label(ax, panel_labels_top[0])
 
     ax = axes_bot[0]
     draw_section(ax, BOXES, taper=False, depth_max_plot=None, label_depths=True)
     ax.set_ylabel("Depth (m)", fontsize=8)
-    ax.set_title(f"Meridional section ({abs(SECTION_LON):.0f}°W)", fontsize=8)
-    box_legend(ax, BOXES, loc="lower right")
+    ax.set_title("Meridional section (28°W)", fontsize=8)
     add_panel_label(ax, panel_labels_bot[0])
 
     # ── Column 2: Boussinesq context ──────────────────────────────────────
     ax = axes_top[1]
     setup_globe(ax)
     draw_boxes_fine_grid(ax, BOXES_GLOBE)   # identical to panel a
-    box_legend(ax, BOXES_GLOBE)
-    ax.set_title("Boussinesq  |  geographic box areas", fontsize=8, fontweight="bold")
+    ax.set_title("Regions corresponding to Boussinesq model boxes", fontsize=8,
+                 fontweight="bold")
     add_panel_label(ax, panel_labels_top[1])
 
     ax = axes_bot[1]
     draw_boussinesq_panel(ax)
-    ax.set_title("Boussinesq 2D model — box masks", fontsize=8)
+    ax.set_title("Boussinesq 2D box weighting", fontsize=8)
     add_panel_label(ax, panel_labels_bot[1])
 
-    # ── Column 3: tapered perturbation ────────────────────────────────────
+    # ── Column 3: CLIMBER-X ───────────────────────────────────────────────
     ax = axes_top[2]
     setup_globe(ax)
     draw_boxes_on_globe(ax, BOXES_SHALLOW, taper=True)
-    box_legend(ax, BOXES_SHALLOW, loc="lower left")
-    ax.set_title("CLIMBER-X  |  tapered perturbation (5° cells)", fontsize=8,
-                 fontweight="bold")
+    ax.set_title("CLIMBER-X model boxes", fontsize=8, fontweight="bold")
     add_panel_label(ax, panel_labels_top[2])
 
     ax = axes_bot[2]
     draw_section(ax, BOXES_SHALLOW, taper=True, depth_max_plot=320, label_depths=True)
     ax.set_ylabel("Depth (m)", fontsize=8)
-    ax.set_title(f"Tapered shallow boxes ({abs(SECTION_LON):.0f}°W, zoomed)", fontsize=8)
-    box_legend(ax, BOXES_SHALLOW, loc="upper right")
+    ax.set_title("Meridional section (28°W)", fontsize=8)
     add_panel_label(ax, panel_labels_bot[2])
 
-    # ── Column 4: EOF weighting (placeholder) ─────────────────────────────
+    # ── Column 4: PlaSim ──────────────────────────────────────────────────
     ax = axes_top[3]
     if HAS_CARTOPY:
         setup_globe(ax)
         draw_eof_placeholder(ax, "EOF weighting\n(data to be provided)", globe=True)
     else:
         draw_eof_placeholder(ax, "EOF weighting\n(data to be provided)", globe=False)
-    ax.set_title("PlaSim  |  EOF weighting", fontsize=8, fontweight="bold")
+    ax.set_title("PlaSim model boxes", fontsize=8, fontweight="bold")
     add_panel_label(ax, panel_labels_top[3])
 
     ax = axes_bot[3]
@@ -654,9 +644,26 @@ def main():
     ax.set_ylabel("Depth (m)", fontsize=8)
     add_panel_label(ax, panel_labels_bot[3])
 
-    # ── Save ──────────────────────────────────────────────────────────────
-    out_path = PLOTS_DIR / "perturbations_overview.pdf"
-    savefig_pdf(fig, out_path)
+    # ── Central legend between the two rows ───────────────────────────────
+    legend_handles = [
+        mpatches.Patch(color=BOX_COLOR_NA,    alpha=0.75, label="North Atlantic Box"),
+        mpatches.Patch(color=BOX_COLOR_TROP,  alpha=0.75, label="Tropical Atlantic Box"),
+        mpatches.Patch(color=BOX_COLOR_SOUTH, alpha=0.75, label="Southern Ocean Box"),
+    ]
+    fig.legend(
+        handles=legend_handles,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.485),   # sits in the hspace gap between the rows
+        ncol=3,
+        fontsize=8,
+        framealpha=0.9,
+        edgecolor="#cccccc",
+    )
+
+    # ── Save as PNG ───────────────────────────────────────────────────────
+    out_path = PLOTS_DIR / "perturbations_overview.png"
+    fig.savefig(out_path, dpi=200, bbox_inches="tight")
+    print(f"Figure saved: {out_path}")
     plt.close(fig)
 
 
