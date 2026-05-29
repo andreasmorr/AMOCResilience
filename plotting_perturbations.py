@@ -144,9 +144,9 @@ BOX_COLOR_TROP  = "#d6604d"
 BOX_COLOR_SOUTH = "#4dac26"
 
 BOXES = {
-    "NA":    dict(lat_min=37.5,  lat_max=90.0,  lon_min=-72.5, lon_max=20.0,
+    "NA":    dict(lat_min=37.5,  lat_max=90.0,  lon_min=-71.5, lon_max=20.0,
                   depth_max=None,  color=BOX_COLOR_NA,    label="WOOD_NA"),
-    "Trop":  dict(lat_min=-47.5, lat_max=32.5,  lon_min=-72.5, lon_max=20.0,
+    "Trop":  dict(lat_min=-47.5, lat_max=32.5,  lon_min=-71.5, lon_max=20.0,
                   depth_max=875.0, color=BOX_COLOR_TROP,  label="WOOD_TROP"),
     "South": dict(lat_min=-90.0, lat_max=-52.5, lon_min=-180.0, lon_max=180.0,
                   depth_max=450.0, color=BOX_COLOR_SOUTH, label="WOOD_SOUTH"),
