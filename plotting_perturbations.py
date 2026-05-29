@@ -482,9 +482,10 @@ def draw_boussinesq_panel(ax):
     mask_t = BOUS_TROP_MASK.T
     mask_s = BOUS_SOUTH_MASK.T
 
-    levels = np.linspace(0.0, 1.0, 21)
+    # Start levels above 0 so that zero-value cells are left unfilled (transparent).
+    # Skip the pale end of each colormap so filled regions are visibly dark.
+    levels = np.linspace(0.05, 1.0, 20)
 
-    # Skip the pale end of each colormap so filled regions are visibly dark
     cmap_s = LinearSegmentedColormap.from_list("south_dark",
         plt.cm.Greens(np.linspace(0.50, 1.0, 256)))
     cmap_t = LinearSegmentedColormap.from_list("trop_dark",
@@ -493,9 +494,12 @@ def draw_boussinesq_panel(ax):
         plt.cm.Blues(np.linspace(0.30, 1.0, 256)))
 
     # Draw back-to-front so North Atlantic is on top
-    ax.contourf(XX, ZZ, mask_s, levels=levels, cmap=cmap_s, alpha=0.95, zorder=2)
-    ax.contourf(XX, ZZ, mask_t, levels=levels, cmap=cmap_t, alpha=0.95, zorder=3)
-    ax.contourf(XX, ZZ, mask_n, levels=levels, cmap=cmap_n, alpha=0.95, zorder=4)
+    ax.contourf(XX, ZZ, mask_s, levels=levels, cmap=cmap_s, alpha=0.95, zorder=2,
+                extend="neither")
+    ax.contourf(XX, ZZ, mask_t, levels=levels, cmap=cmap_t, alpha=0.95, zorder=3,
+                extend="neither")
+    ax.contourf(XX, ZZ, mask_n, levels=levels, cmap=cmap_n, alpha=0.95, zorder=4,
+                extend="neither")
 
     # Box boundary lines (latitude only — vertical lines)
     for x_edge, col in [
@@ -584,8 +588,8 @@ def main():
     # ── Column 1: non-tapered Wood boxes ──────────────────────────────────
     ax = axes_top[0]
     setup_globe(ax)
-    draw_boxes_fine_grid(ax, BOXES)
-    box_legend(ax, BOXES)
+    draw_boxes_fine_grid(ax, BOXES_ATLANTIC)
+    box_legend(ax, BOXES_ATLANTIC)
     ax.set_title("CLIMBER-X  |  non-tapered boxes", fontsize=8, fontweight="bold")
     add_panel_label(ax, panel_labels_top[0])
 
@@ -599,8 +603,8 @@ def main():
     # ── Column 2: Boussinesq context ──────────────────────────────────────
     ax = axes_top[1]
     setup_globe(ax)
-    draw_boxes_fine_grid(ax, BOXES)   # identical to panel a
-    box_legend(ax, BOXES)
+    draw_boxes_fine_grid(ax, BOXES_ATLANTIC)   # identical to panel a
+    box_legend(ax, BOXES_ATLANTIC)
     ax.set_title("Boussinesq  |  geographic box areas", fontsize=8, fontweight="bold")
     add_panel_label(ax, panel_labels_top[1])
 
