@@ -103,6 +103,39 @@ def _build_ocean_mask(land_union):
 
 OCEAN_MASK = _build_ocean_mask(LAND_UNION)   # (36, 72) bool
 
+# Fine-resolution (0.5°) grid for smooth globe panels — land-masked via LAND_UNION
+_FINE_RES = 0.5
+_FINE_LON = np.arange(-179.75, 180.0, _FINE_RES)
+_FINE_LAT = np.arange( -89.75,  90.0, _FINE_RES)
+_FINE_LON_EDGES = np.concatenate([
+    [_FINE_LON[0] - _FINE_RES/2],
+    0.5*(_FINE_LON[:-1] + _FINE_LON[1:]),
+    [_FINE_LON[-1] + _FINE_RES/2],
+])
+_FINE_LAT_EDGES = np.concatenate([
+    [_FINE_LAT[0] - _FINE_RES/2],
+    0.5*(_FINE_LAT[:-1] + _FINE_LAT[1:]),
+    [_FINE_LAT[-1] + _FINE_RES/2],
+])
+
+def _build_fine_ocean_mask():
+    lon2d, lat2d = np.meshgrid(_FINE_LON, _FINE_LAT)
+    lons, lats = lon2d.ravel(), lat2d.ravel()
+    try:
+        from shapely.vectorized import contains as _vc
+        is_land = _vc(LAND_UNION, lons, lats)
+    except Exception:
+        try:
+            from shapely import contains_xy
+            is_land = contains_xy(LAND_UNION, lons, lats)
+        except Exception as exc:
+            print(f"  [warning] fine ocean mask unavailable ({exc})")
+            return np.ones((len(_FINE_LAT), len(_FINE_LON)), dtype=bool)
+    return (~is_land).reshape(lon2d.shape)
+
+print("Building fine ocean mask (0.5°) for globe panels …")
+FINE_OCEAN_MASK = _build_fine_ocean_mask()   # (360, 720) bool
+
 # ---------------------------------------------------------------------------
 # Wood-box definitions  (full/deep variants and shallow variants)
 # ---------------------------------------------------------------------------
@@ -336,6 +369,33 @@ def draw_boxes_smooth(ax, box_dict):
         )
 
 
+def draw_boxes_fine_grid(ax, box_dict):
+    """Plot box regions using the 0.5° FINE_OCEAN_MASK — smooth and land-excluded.
+    Avoids cartopy polygon-fill artefacts that plague add_geometries on orthographic."""
+    for key, box in box_dict.items():
+        lat_ok = (_FINE_LAT >= box["lat_min"]) & (_FINE_LAT <= box["lat_max"])
+        lo_min = ((box["lon_min"] + 180) % 360) - 180
+        lo_max = ((box["lon_max"] + 180) % 360) - 180
+        lon_norm = ((_FINE_LON + 180) % 360) - 180
+        if (box["lon_max"] - box["lon_min"]) >= 360:
+            lon_ok = np.ones(len(_FINE_LON), dtype=bool)
+        elif lo_min <= lo_max:
+            lon_ok = (lon_norm >= lo_min) & (lon_norm <= lo_max)
+        else:
+            lon_ok = (lon_norm >= lo_min) | (lon_norm <= lo_max)
+        w2 = (lat_ok[:, None] & lon_ok[None, :] & FINE_OCEAN_MASK).astype(float)
+        rgba = np.array(mcolors.to_rgba(box["color"]))
+        cmap = LinearSegmentedColormap.from_list(
+            "", [(rgba[0], rgba[1], rgba[2], 0.0), (*rgba[:3], 0.65)], N=2
+        )
+        kw = dict(cmap=cmap, vmin=0, vmax=1, shading="flat", zorder=3)
+        if HAS_CARTOPY:
+            ax.pcolormesh(_FINE_LON_EDGES, _FINE_LAT_EDGES, w2,
+                         transform=_PC_TRANSFORM, **kw)
+        else:
+            ax.pcolormesh(_FINE_LON_EDGES, _FINE_LAT_EDGES, w2, **kw)
+
+
 def draw_boxes_on_globe(ax, box_dict, taper=False):
     """Plot depth-averaged box weights on the globe as a pcolormesh.
     Used for the tapered panel where per-cell weights must be shown."""
@@ -423,10 +483,19 @@ def draw_boussinesq_panel(ax):
     mask_s = BOUS_SOUTH_MASK.T
 
     levels = np.linspace(0.0, 1.0, 21)
+
+    # Skip the pale end of each colormap so filled regions are visibly dark
+    cmap_s = LinearSegmentedColormap.from_list("south_dark",
+        plt.cm.Greens(np.linspace(0.50, 1.0, 256)))
+    cmap_t = LinearSegmentedColormap.from_list("trop_dark",
+        plt.cm.Oranges(np.linspace(0.38, 1.0, 256)))
+    cmap_n = LinearSegmentedColormap.from_list("north_dark",
+        plt.cm.Blues(np.linspace(0.30, 1.0, 256)))
+
     # Draw back-to-front so North Atlantic is on top
-    ax.contourf(XX, ZZ, mask_s, levels=levels, cmap="Greens",  alpha=0.85, zorder=2)
-    ax.contourf(XX, ZZ, mask_t, levels=levels, cmap="Oranges", alpha=0.85, zorder=3)
-    ax.contourf(XX, ZZ, mask_n, levels=levels, cmap="Blues",   alpha=0.85, zorder=4)
+    ax.contourf(XX, ZZ, mask_s, levels=levels, cmap=cmap_s, alpha=0.95, zorder=2)
+    ax.contourf(XX, ZZ, mask_t, levels=levels, cmap=cmap_t, alpha=0.95, zorder=3)
+    ax.contourf(XX, ZZ, mask_n, levels=levels, cmap=cmap_n, alpha=0.95, zorder=4)
 
     # Box boundary lines (latitude only — vertical lines)
     for x_edge, col in [
@@ -515,8 +584,8 @@ def main():
     # ── Column 1: non-tapered Wood boxes ──────────────────────────────────
     ax = axes_top[0]
     setup_globe(ax)
-    draw_boxes_smooth(ax, BOXES_ATLANTIC)   # smooth shapely fill, Atlantic only
-    box_legend(ax, BOXES_ATLANTIC)
+    draw_boxes_fine_grid(ax, BOXES)
+    box_legend(ax, BOXES)
     ax.set_title("CLIMBER-X  |  non-tapered boxes", fontsize=8, fontweight="bold")
     add_panel_label(ax, panel_labels_top[0])
 
@@ -530,8 +599,8 @@ def main():
     # ── Column 2: Boussinesq context ──────────────────────────────────────
     ax = axes_top[1]
     setup_globe(ax)
-    draw_boxes_smooth(ax, BOXES_ATLANTIC)   # identical to panel a
-    box_legend(ax, BOXES_ATLANTIC)
+    draw_boxes_fine_grid(ax, BOXES)   # identical to panel a
+    box_legend(ax, BOXES)
     ax.set_title("Boussinesq  |  geographic box areas", fontsize=8, fontweight="bold")
     add_panel_label(ax, panel_labels_top[1])
 
