@@ -152,7 +152,15 @@ BOXES = {
                   depth_max=450.0, color=BOX_COLOR_SOUTH, label="WOOD_SOUTH"),
 }
 
-# Atlantic-only subset for globe panels a and b (no Southern Ocean ring)
+# Globe panels a and b: all three boxes, Tropical extended to 37.5°N to close
+# the 5° gap between Tropical (ends 32.5°N) and NA (starts 37.5°N).
+BOXES_GLOBE = {
+    "NA":    BOXES["NA"],
+    "Trop":  {**BOXES["Trop"], "lat_max": 37.5},
+    "South": BOXES["South"],
+}
+
+# Atlantic-only subset (kept for reference)
 BOXES_ATLANTIC = {
     "NA":   BOXES["NA"],
     "Trop": BOXES["Trop"],
@@ -588,8 +596,8 @@ def main():
     # ── Column 1: non-tapered Wood boxes ──────────────────────────────────
     ax = axes_top[0]
     setup_globe(ax)
-    draw_boxes_fine_grid(ax, BOXES_ATLANTIC)
-    box_legend(ax, BOXES_ATLANTIC)
+    draw_boxes_fine_grid(ax, BOXES_GLOBE)
+    box_legend(ax, BOXES_GLOBE)
     ax.set_title("CLIMBER-X  |  non-tapered boxes", fontsize=8, fontweight="bold")
     add_panel_label(ax, panel_labels_top[0])
 
@@ -603,8 +611,8 @@ def main():
     # ── Column 2: Boussinesq context ──────────────────────────────────────
     ax = axes_top[1]
     setup_globe(ax)
-    draw_boxes_fine_grid(ax, BOXES_ATLANTIC)   # identical to panel a
-    box_legend(ax, BOXES_ATLANTIC)
+    draw_boxes_fine_grid(ax, BOXES_GLOBE)   # identical to panel a
+    box_legend(ax, BOXES_GLOBE)
     ax.set_title("Boussinesq  |  geographic box areas", fontsize=8, fontweight="bold")
     add_panel_label(ax, panel_labels_top[1])
 
