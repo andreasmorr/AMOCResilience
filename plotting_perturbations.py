@@ -481,7 +481,7 @@ def draw_section(ax, box_dict, taper=False, depth_max_plot=None, label_depths=Tr
 # Boussinesq 2D panel
 # ---------------------------------------------------------------------------
 
-BOUS_DEPTH_SCALE = 3000.0   # normalised depth 1 corresponds to this many metres
+BOUS_DEPTH_SCALE = 2000.0   # normalised depth 1 corresponds to this many metres
 
 def draw_boussinesq_panel(ax):
     """
@@ -657,14 +657,12 @@ def main():
     add_panel_label(ax, panel_labels_bot[3])
 
     # ── Shared y-axis for bottom panels e, f, g (depth 0–2000 m) ──────────
-    # Panel f uses metres internally (norm_depth × 3000), so ylim [2000, 0]
-    # aligns it with the section panels.
+    # Panel f uses metres internally (norm_depth × 2000), so ylim [2000, 0]
+    # aligns exactly with the section panels (norm depth 1 = 2000 m).
     for ax in axes_bot[:3]:
         ax.set_ylim(2000, 0)
-    # Remove redundant y-axis labels on f and g (shared with e)
-    for ax in axes_bot[1:3]:
-        ax.set_ylabel("")
-        ax.tick_params(labelleft=False)
+    # Restore ylabel and ticks on g
+    axes_bot[2].set_ylabel("Depth (m)", fontsize=8)
 
     # ── Central legend between the two rows ───────────────────────────────
     legend_handles = [
