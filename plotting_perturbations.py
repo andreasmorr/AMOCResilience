@@ -296,7 +296,7 @@ BOUS_LAT_DEG = BOUS_XX / 5.0 * 180.0 - 90.0    # (21,)
 # Globe-panel setup helpers
 # ---------------------------------------------------------------------------
 
-_GLOBE_PROJ    = ccrs.Orthographic(-30, 20) if HAS_CARTOPY else None
+_GLOBE_PROJ    = ccrs.Orthographic(-30, 5) if HAS_CARTOPY else None
 _PC_TRANSFORM  = ccrs.PlateCarree()         if HAS_CARTOPY else None
 
 _OCEAN_COLOR   = "#cce5f5"
