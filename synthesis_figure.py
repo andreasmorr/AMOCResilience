@@ -37,51 +37,55 @@ sys.path.insert(0, str(UMBRELLA))
 
 from amoc_plot_style import (
     COL_ON, COL_OFF, COL_EDGE,
-    FIGURE_WIDTH,
     apply_style, savefig_pdf,
 )
 
-BOX_CSV    = UMBRELLA / "AMOCBox"    / "data" / "paper" / "resilience_vs_co2_boxmodel.csv"
-PLASIM_CSV = UMBRELLA / "AMOCPlaSim" / "data" / "plasim" / "resilience_metrics.csv"
+FIGURE_WIDTH = 10.0   # inches
 
-# TODO: add AMOCBoussinesq resilience CSV path here when available.
-# Expected columns: co2_ppm (or gamma), measure, value, attractor
-# BOUSSINESQ_CSV = UMBRELLA / "AMOCBoussinesq" / "data" / "paper" / "resilience_vs_gamma_boussinesq.csv"
-
-# TODO: add AMOCClimberX resilience CSV path here when available.
-# Expected columns: co2_ppm, measure, value, attractor
-# CLIMBERX_CSV = UMBRELLA / "AMOCClimberX" / "data" / "paper" / "resilience_vs_co2_climberx.csv"
+BOX_CSV        = UMBRELLA / "AMOCBox"        / "data" / "paper" / "resilience_vs_co2_boxmodel.csv"
+PLASIM_CSV     = UMBRELLA / "AMOCPlaSim"    / "data" / "plasim" / "resilience_metrics.csv"
+BOUSSINESQ_CSV = UMBRELLA / "AMOCBoussinesq" / "data" / "paper" / "resilience_vs_gamma_boussinesq.csv"
+CLIMBERX_CSV   = UMBRELLA / "AMOCClimberX"  / "data" / "paper" / "resilience_vs_co2_climberx.csv"
 
 
 # ---------------------------------------------------------------------------
 # Panel definitions
 # ---------------------------------------------------------------------------
 
-# Each entry: (measure_name_in_boxmodel_csv, plasim_column, ylabel, title)
+# Each entry: (box_measure, boussinesq_measure, climberx_measure, plasim_column, ylabel, title)
+# Use None where a model does not provide that measure.
 PANELS = [
     (
         "amoc_strength_sv",
+        "amoc_strength",
+        "amoc_strength",
         "mean_amoc_strength_Sv",
         "AMOC strength (Sv)",
         "AMOC strength vs CO\u2082",
     ),
     (
-        "median_convergence_time",
+        "mean_convergence_time",
+        "mean_convergence_time",
+        "mean_convergence_time",
         "mean_conv_time_yr",
         "Mean convergence time (yr)",
         "Convergence time vs CO\u2082",
     ),
     (
         "minimal_critical_shock_magnitude",
+        None,
+        None,
         "mean_edge_dist",
         "Edge\u2013attractor distance (EOF units)",
         "Critical shock / edge distance vs CO\u2082",
     ),
     (
-        "finite_time_basin_stability",
+        "basin_stability",
+        None,
+        None,
         "ellipsoid_volume_1sigma",
         "Ellipsoid volume (1\u03c3)",
-        "Finite-time basin stability / variability vs CO\u2082",
+        "Basin stability / variability vs CO\u2082",
     ),
 ]
 
@@ -101,23 +105,41 @@ def load_box_model() -> pd.DataFrame | None:
 def load_plasim() -> pd.DataFrame | None:
     if not PLASIM_CSV.exists():
         print(f"[PlaSim] CSV not found: {PLASIM_CSV}")
-        print("  Run plasim_edge_analysis.jl first.")
         return None
-    df = pd.read_csv(PLASIM_CSV)
-    return df
+    return pd.read_csv(PLASIM_CSV)
+
+
+def load_boussinesq() -> pd.DataFrame | None:
+    if not BOUSSINESQ_CSV.exists():
+        print(f"[Boussinesq] CSV not found: {BOUSSINESQ_CSV}")
+        return None
+    return pd.read_csv(BOUSSINESQ_CSV)
+
+
+def load_climberx() -> pd.DataFrame | None:
+    if not CLIMBERX_CSV.exists():
+        print(f"[CLIMBER-X] CSV not found: {CLIMBERX_CSV}")
+        return None
+    return pd.read_csv(CLIMBERX_CSV)
 
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
+COL_BOUS    = "#7B3F00"   # brown for Boussinesq
+COL_CLIMBERX = "#4D0099"  # purple for CLIMBER-X
+
+
 def main() -> None:
     apply_style()
 
-    df_box    = load_box_model()
-    df_plasim = load_plasim()
+    df_box       = load_box_model()
+    df_plasim    = load_plasim()
+    df_boussinesq = load_boussinesq()
+    df_climberx  = load_climberx()
 
-    if df_box is None and df_plasim is None:
+    if df_box is None and df_plasim is None and df_boussinesq is None and df_climberx is None:
         print("No data available for synthesis figure. Generate model data first.")
         sys.exit(1)
 
@@ -129,7 +151,7 @@ def main() -> None:
     )
     axes_flat = axes.flatten()
 
-    for panel_idx, (box_measure, plasim_col, ylabel, panel_title) in enumerate(PANELS):
+    for panel_idx, (box_measure, bous_measure, cx_measure, plasim_col, ylabel, panel_title) in enumerate(PANELS):
         ax = axes_flat[panel_idx]
 
         # ── Box model line ────────────────────────────────────────────────────
@@ -183,13 +205,41 @@ def main() -> None:
                         linewidths=0.5,
                     )
 
-        # TODO: add AMOCBoussinesq data here when available.
-        # Expected: load BOUSSINESQ_CSV, filter by measure, plot as scatter
-        # with a distinct color (e.g. '#7B3F00') and marker='D'.
+        # ── Boussinesq line ───────────────────────────────────────────────────
+        if df_boussinesq is not None and bous_measure is not None:
+            sub_b = df_boussinesq[
+                (df_boussinesq["measure"] == bous_measure) &
+                (df_boussinesq["attractor"] == "on")
+            ].sort_values("co2_ppm")
+            if not sub_b.empty:
+                ax.plot(
+                    sub_b["co2_ppm"].values,
+                    sub_b["value"].values,
+                    color=COL_BOUS,
+                    lw=1.8,
+                    linestyle="--",
+                    label="Boussinesq (on)",
+                    zorder=3,
+                )
 
-        # TODO: add AMOCClimberX data here when available.
-        # Expected: load CLIMBERX_CSV, filter by measure, plot as scatter
-        # with a distinct color (e.g. '#4D0099') and marker='s'.
+        # ── CLIMBER-X scatter ─────────────────────────────────────────────────
+        if df_climberx is not None and cx_measure is not None:
+            sub_cx = df_climberx[
+                (df_climberx["measure"] == cx_measure) &
+                (df_climberx["attractor"] == "on")
+            ].sort_values("co2_ppm")
+            if not sub_cx.empty:
+                ax.scatter(
+                    sub_cx["co2_ppm"].values,
+                    sub_cx["value"].values,
+                    color=COL_CLIMBERX,
+                    marker="s",
+                    s=50,
+                    zorder=5,
+                    label="CLIMBER-X (on)",
+                    edgecolors="white",
+                    linewidths=0.5,
+                )
 
         # ── Reference lines ───────────────────────────────────────────────────
         ax.axvline(280, color="gray", lw=0.8, ls=":", alpha=0.7)
@@ -221,24 +271,30 @@ def main() -> None:
 
     # Shared legend (model identification) — placed below figure
     from matplotlib.lines import Line2D
+    from matplotlib.patches import Patch
     legend_elements = [
-        Line2D([0], [0], color=COL_ON, lw=1.8, label="3-box model"),
-        plt.scatter([], [], marker="^", color=COL_ON,  s=40, label="PlaSim (AMOC-on)"),
-        plt.scatter([], [], marker="v", color=COL_OFF, s=40, label="PlaSim (AMOC-off)"),
-        # TODO: add Boussinesq and CLIMBER-X legend entries here
+        Line2D([0], [0], color=COL_ON,      lw=1.8,             label="3-box model (on)"),
+        Line2D([0], [0], color=COL_BOUS,    lw=1.8, ls="--",    label="Boussinesq (on)"),
+        Line2D([0], [0], color=COL_CLIMBERX, lw=0,  marker="s", markersize=6,
+               label="CLIMBER-X (on)"),
+        Line2D([0], [0], color=COL_ON,       lw=0,  marker="^", markersize=6,
+               label="PlaSim (AMOC-on)"),
+        Line2D([0], [0], color=COL_OFF,      lw=0,  marker="v", markersize=6,
+               label="PlaSim (AMOC-off)"),
     ]
     fig.legend(
         handles=legend_elements,
         loc="lower center",
         bbox_to_anchor=(0.5, -0.04),
-        ncol=4,
+        ncol=5,
         fontsize=7,
         framealpha=0.8,
     )
 
-    out_path = UMBRELLA / "plots" / "synthesis_figure.pdf"
+    out_path = UMBRELLA / "plots" / "synthesis_figure.png"
     (UMBRELLA / "plots").mkdir(exist_ok=True)
-    savefig_pdf(fig, out_path)
+    fig.savefig(out_path, dpi=200, bbox_inches="tight")
+    print(f"Figure saved: {out_path}")
     plt.close(fig)
 
 
