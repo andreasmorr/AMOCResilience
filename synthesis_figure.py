@@ -187,7 +187,6 @@ def main() -> None:
         if df_plasim is not None and plasim_col in df_plasim.columns:
             for state, color, marker in [
                 ("AMOC-on",  COL_ON,  "^"),
-                ("AMOC-off", COL_OFF, "v"),
             ]:
                 sub_p = df_plasim[df_plasim["state"] == state].dropna(
                     subset=["co2_ppm", plasim_col]
@@ -279,14 +278,12 @@ def main() -> None:
                label="CLIMBER-X (on)"),
         Line2D([0], [0], color=COL_ON,       lw=0,  marker="^", markersize=6,
                label="PlaSim (AMOC-on)"),
-        Line2D([0], [0], color=COL_OFF,      lw=0,  marker="v", markersize=6,
-               label="PlaSim (AMOC-off)"),
     ]
     fig.legend(
         handles=legend_elements,
         loc="lower center",
         bbox_to_anchor=(0.5, -0.04),
-        ncol=5,
+        ncol=4,
         fontsize=7,
         framealpha=0.8,
     )
