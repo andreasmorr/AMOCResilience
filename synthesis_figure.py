@@ -61,7 +61,7 @@ PANELS = [
         "amoc_strength",
         "mean_amoc_strength_Sv",
         "AMOC strength (Sv)",
-        "AMOC strength vs CO\u2082",
+        "AMOC strength",
     ),
     (
         "mean_convergence_time",
@@ -69,7 +69,7 @@ PANELS = [
         "mean_convergence_time",
         "mean_conv_time_yr",
         "Mean convergence time (yr)",
-        "Convergence time vs CO\u2082",
+        "Convergence time",
     ),
     (
         "minimal_critical_shock_magnitude",
@@ -77,7 +77,7 @@ PANELS = [
         None,
         "mean_edge_dist",
         "Edge\u2013attractor distance (EOF units)",
-        "Critical shock / edge distance vs CO\u2082",
+        "Critical shock / edge distance",
     ),
     (
         "characteristic_return_time",
@@ -85,7 +85,7 @@ PANELS = [
         "characteristic_return_time",
         "ellipse_long_axis_1sigma",
         "Char. return time / ellipse long axis",
-        "Characteristic return time vs CO\u2082",
+        "Characteristic return time",
     ),
 ]
 
@@ -129,6 +129,7 @@ def load_climberx() -> pd.DataFrame | None:
 
 COL_BOUS    = "#7B3F00"   # brown for Boussinesq
 COL_CLIMBERX = "#4D0099"  # purple for CLIMBER-X
+COL_PLASIM   = "#D95F02"  # orange for PlaSim
 
 
 def main() -> None:
@@ -151,13 +152,14 @@ def main() -> None:
         nrows, ncols,
         figsize=(FIGURE_WIDTH, 5.5 * nrows / 2),
         constrained_layout=True,
+        sharex="col",
     )
     axes_flat = axes.flatten()
 
     for panel_idx, (box_measure, bous_measure, cx_measure, plasim_col, ylabel, panel_title) in enumerate(PANELS):
         ax = axes_flat[panel_idx]
 
-        # ── Box model line ────────────────────────────────────────────────────
+        # ── Box model scatter ─────────────────────────────────────────────────
         if df_box is not None:
             sub = df_box[
                 (df_box["measure"] == box_measure) &
@@ -165,23 +167,25 @@ def main() -> None:
             ].sort_values("co2_ppm")
 
             if not sub.empty:
-                ax.plot(
+                ax.scatter(
                     sub["co2_ppm"].values,
                     sub["value"].values,
                     color=COL_ON,
-                    lw=1.8,
-                    label="3-box model (on)",
+                    marker="o",
+                    s=20,
+                    label="3-box model",
                     zorder=3,
                 )
             else:
                 # Try without attractor filter (e.g. amoc_strength_sv)
                 sub_all = df_box[df_box["measure"] == box_measure].sort_values("co2_ppm")
                 if not sub_all.empty:
-                    ax.plot(
+                    ax.scatter(
                         sub_all["co2_ppm"].values,
                         sub_all["value"].values,
                         color=COL_ON,
-                        lw=1.8,
+                        marker="o",
+                        s=20,
                         label="3-box model",
                         zorder=3,
                     )
@@ -189,7 +193,7 @@ def main() -> None:
         # ── PlaSim points ─────────────────────────────────────────────────────
         if df_plasim is not None and plasim_col in df_plasim.columns:
             for state, color, marker in [
-                ("AMOC-on",  COL_ON,  "^"),
+                ("AMOC-on",  COL_PLASIM,  "^"),
             ]:
                 sub_p = df_plasim[df_plasim["state"] == state].dropna(
                     subset=["co2_ppm", plasim_col]
@@ -202,25 +206,25 @@ def main() -> None:
                         marker=marker,
                         s=50,
                         zorder=5,
-                        label=f"PlaSim ({state})",
+                        label="PlaSim",
                         edgecolors="white",
                         linewidths=0.5,
                     )
 
-        # ── Boussinesq line ───────────────────────────────────────────────────
+        # ── Boussinesq scatter ────────────────────────────────────────────────
         if df_boussinesq is not None and bous_measure is not None:
             sub_b = df_boussinesq[
                 (df_boussinesq["measure"] == bous_measure) &
                 (df_boussinesq["attractor"] == "on")
             ].sort_values("co2_ppm")
             if not sub_b.empty:
-                ax.plot(
+                ax.scatter(
                     sub_b["co2_ppm"].values,
                     sub_b["value"].values,
                     color=COL_BOUS,
-                    lw=1.8,
-                    linestyle="--",
-                    label="Boussinesq (on)",
+                    marker="D",
+                    s=20,
+                    label="Boussinesq",
                     zorder=3,
                 )
 
@@ -238,30 +242,18 @@ def main() -> None:
                     marker="s",
                     s=50,
                     zorder=5,
-                    label="CLIMBER-X (on)",
+                    label="CLIMBER-X",
                     edgecolors="white",
                     linewidths=0.5,
                 )
 
-        # ── Reference lines ───────────────────────────────────────────────────
-        ax.axvline(280, color="gray", lw=0.8, ls=":", alpha=0.7)
-        ax.axvline(560, color="gray", lw=0.8, ls=":", alpha=0.7)
 
         ax.set_title(panel_title, fontsize=8)
-        ax.set_xlabel("CO\u2082 concentration (ppm)", fontsize=8)
         ax.set_ylabel(ylabel, fontsize=8)
         ax.tick_params(labelsize=7)
+        if panel_idx // ncols == nrows - 1:
+            ax.set_xlabel("CO\u2082 concentration (ppm)", fontsize=8)
 
-        if panel_idx == 0:
-            # Add legend in first panel only
-            ax.legend(loc="upper right", fontsize=7, framealpha=0.8)
-
-    # Add 1×CO₂ / 2×CO₂ annotations to first panel
-    ax0 = axes_flat[0]
-    ymin, ymax = ax0.get_ylim()
-    y_text = ymin + 0.02 * (ymax - ymin)
-    ax0.text(280 + 5, y_text, "1\u00d7CO\u2082", fontsize=7, color="gray", va="bottom")
-    ax0.text(560 + 5, y_text, "2\u00d7CO\u2082", fontsize=7, color="gray", va="bottom")
 
     # Panel labels
     for idx, label in enumerate(["(a)", "(b)", "(c)", "(d)"]):
@@ -275,12 +267,10 @@ def main() -> None:
     from matplotlib.lines import Line2D
     from matplotlib.patches import Patch
     legend_elements = [
-        Line2D([0], [0], color=COL_ON,      lw=1.8,             label="3-box model (on)"),
-        Line2D([0], [0], color=COL_BOUS,    lw=1.8, ls="--",    label="Boussinesq (on)"),
-        Line2D([0], [0], color=COL_CLIMBERX, lw=0,  marker="s", markersize=6,
-               label="CLIMBER-X (on)"),
-        Line2D([0], [0], color=COL_ON,       lw=0,  marker="^", markersize=6,
-               label="PlaSim (AMOC-on)"),
+        Line2D([0], [0], color=COL_ON,       lw=0,  marker="o", markersize=6, label="3-box model"),
+        Line2D([0], [0], color=COL_BOUS,    lw=0,  marker="D", markersize=6, label="Boussinesq"),
+        Line2D([0], [0], color=COL_CLIMBERX, lw=0,  marker="s", markersize=6, label="CLIMBER-X"),
+        Line2D([0], [0], color=COL_PLASIM,   lw=0,  marker="^", markersize=6, label="PlaSim"),
     ]
     fig.legend(
         handles=legend_elements,
