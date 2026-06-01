@@ -87,14 +87,6 @@ PANELS = [
         "Char. return time / ellipse long axis",
         "Characteristic return time vs CO\u2082",
     ),
-    (
-        "basin_stability",
-        None,
-        None,
-        "ellipsoid_volume_1sigma",
-        "Ellipsoid volume (1\u03c3)",
-        "Basin stability / variability vs CO\u2082",
-    ),
 ]
 
 # ---------------------------------------------------------------------------
