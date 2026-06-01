@@ -120,14 +120,14 @@ All simulations are conducted at a discrete set of model parameter values. The A
     North Atlantic box
       & High-latitude Atlantic where NADW forms; salinity $S_N$ sets the meridional density gradient driving the overturning.
       & State variable $S_N$ (anomaly re $35\,\psu$); box volume $V_N$; receives freshwater hosing $H$.
-      & Smooth tanh mask, ${\approx}40°$--$90°$N, surface-intensified; $\Delta S_N\in[-0.25,0.25]$ on a $15{\times}15$ grid.
+      & Smooth tanh mask, ${\approx}40°$--$90°$N, surface-intensified; $\Delta S_N\in[-2,2]\,\psu$ on a $15{\times}15$ grid.
       & $37.5°$--$90°$N, $72.5°$W--$20°$E, full depth; $\Delta S_N\in\{-2,{-1},{-0.2},{-0.1},0\}\,\psu$.
       & Subpolar $40°$--$80°$N (upper $1000\,\mathrm{m}$) enters SG$_\mathrm{mer}$; NA $46°$--$66°$N enters SG$_\mathrm{vert}$;
         no direct perturbation applied. \\[6pt]
     Tropical Atlantic box
       & Low- to mid-latitude Atlantic; salinity $S_T$ contrast with $S_N$ sets the overturning strength $q$.
       & State variable $S_T$; box volume $V_T$; receives compensating hosing $bH$.
-      & Smooth tanh mask, ${\approx}50°$S--$40°$N, surface-intensified; $\Delta S_T\in[-0.25,0.25]$.
+      & Smooth tanh mask, ${\approx}50°$S--$40°$N, surface-intensified; $\Delta S_T\in[-2,2]\,\psu$.
       & $47.5°$S--$32.5°$N, $72.5°$W--$20°$E, upper $875\,\mathrm{m}$; $\Delta S_T\in\{-1,{-0.1},0,0.1,1\}\,\psu$.
       & Tropical $0°$--$20°$N (upper $1000\,\mathrm{m}$) enters SG$_\mathrm{mer}$; no direct perturbation applied. \\[6pt]
     Southern Ocean box
@@ -147,13 +147,13 @@ All simulations are conducted at a discrete set of model parameter values. The A
     Convergence time
       & Time for a perturbed trajectory to return to the on-state; encodes both local and global basin geometry.
       & Median return time across $10\,000$ uniform initial conditions; convergence at $\varepsilon=0.01$ proximity in $(S_N,S_T)$.
-      & Integration time until the $(S_N,S_T)$ vector is within $\varepsilon=10^{-3}$ of the reference state; max $5{\times}10^5$ time steps.
+      & Integration time until the $(S_N,S_T)$ vector is within $\varepsilon=0.05\,\psu$ (${\approx}0.005$ model units) of the reference state; max $5{\times}10^5$ time steps.
       & Recovery time of perturbed restarts in $2000$-yr runs; final state classified by $500$-yr trailing AMOC mean at $26°$N.
       & Transit time from last edge-ellipsoid visit to first on-state ellipsoid entry; from $37$--$38$ bisection tracks per \CO{} level. \\[6pt]
     Basin volume
       & Fraction of a reference state-space region converging to the on-state; measures the size of the basin of attraction.
       & Fraction of $10\,000$ uniform samples in $(S_N,S_T)\in[25,45]\times[34,55]\,\psu$ converging to the on-state.
-      & Fraction of $15{\times}15$ grid points in $(\Delta S_N,\Delta S_T)\in[-0.25,0.25]^2$ returning to the on-state.
+      & Fraction of $15{\times}15$ grid points in $(\Delta S_N,\Delta S_T)\in[-2,2]^2\,\psu$ returning to the on-state.
       & Fraction of $25$ perturbation experiments per \CO{} level classified as on-state after $2000$-yr integration.
       & Not directly computed; basin geometry inferred from edge-state distances and equilibrium attractor clouds. \\[6pt]
     Minimal critical shock
@@ -202,20 +202,22 @@ All resilience calculations are performed using the \texttt{Attractors.jl} packa
 
 The second model is a two-dimensional latitude-depth Boussinesq model of the AMOC. The model resolves temperature, salinity, vorticity, and streamfunction on an $(M+1)\times(N+1)$ grid with $M=20$ latitude points and $N=40$ depth points, and is integrated with time step $\Delta t=10^{-3}$. It uses the non-dimensional salinity-forcing asymmetry $\beta=0.1$ and a seven-mode salinity-forcing configuration. This model is much less expensive than CLIMBER-X but already contains spatially structured salinity fields and an overturning streamfunction, making it a useful intermediate step between the conceptual box model and the three-dimensional climate models.
 
-We introduce a single external forcing parameter, denoted $\gamma$, that controls Arctic amplification of the imposed thermal profile. The experiments sweep $\gamma\in[0,0.1]$ in increments of $0.01$. For each value of $\gamma$, the model is spun up for $20\,000$ time steps from the same analytical initial condition to obtain an AMOC-on reference state. This reference state defines both the unperturbed streamfunction strength and the target box salinities used in the convergence criterion.
+We introduce a single external forcing parameter, denoted $\gamma$, that controls Arctic amplification of the imposed thermal profile. The experiments sweep $\gamma$ across 15 uniformly spaced values in the interval $[0,0.14]$, corresponding to \CO{} concentrations from the pre-industrial baseline ($280\,\text{ppm}$) to approximately $740\,\text{ppm}$, well beyond a doubling of \CO{}. For each value of $\gamma$, the model is spun up for $20\,000$ time steps from the same analytical initial condition to obtain an AMOC-on reference state. This reference state defines both the unperturbed streamfunction strength and the target box salinities used in the convergence criterion.
 
 To connect the model's forcing parameter to an observationally meaningful scale, we derive an explicit mapping between atmospheric \CO{} concentration $C$ and $\gamma$. Arctic amplification reduces the equator-to-pole sea-surface temperature (SST) gradient; $\gamma$ measures this reduction as a fraction of the pre-industrial gradient $\Delta T_0$. With global warming given by the logarithmic forcing formula $\Delta T_\text{global}=\text{ECS}\log_2(C/C_0)$ and polar SST amplification $\alpha_\text{sst}$, one obtains
 \begin{equation}
   \gamma(C) = \frac{(\alpha_\text{sst}-1)\,\text{ECS}}{\Delta T_0}\log_2\!\left(\frac{C}{C_0}\right).
   \label{eq:co2_gamma}
 \end{equation}
-We adopt the IPCC AR6 best-estimate equilibrium climate sensitivity $\text{ECS}=3.0\,^{\circ}\text{C}$ per CO$_2$ doubling \citep{Forster2021IPCCAR6Ch7}, a polar ocean-surface amplification factor $\alpha_\text{sst}=2.0$ consistent with observations of Arctic SST warming being approximately two- to threefold the global-mean SST increase \citep{Meredith2019IPCCSROCC}, and a pre-industrial Atlantic equator-to-pole SST difference $\Delta T_0=30\,^{\circ}\text{C}$ (approximate Levitus climatology value). These choices yield the compact formula $\gamma(C)=0.1\log_2(C/280\,\text{ppm})$, so that $\gamma=0$ corresponds to pre-industrial \CO{} ($C_0=280\,\text{ppm}$) and $\gamma=0.1$ to a doubling of \CO{} ($C=560\,\text{ppm}$). Key benchmarks are: Keeling-curve start (1958, $315\,\text{ppm}$) $\to \gamma\approx0.017$; first IPCC report (1990, $354\,\text{ppm}$) $\to \gamma\approx0.033$; present day ($\sim$2023, $420\,\text{ppm}$) $\to \gamma\approx0.059$. The model sweep $\gamma\in[0,0.1]$ therefore spans the range from pre-industrial to doubled-\CO{} conditions, with the present-day forcing level falling near the upper half of the sweep.
+We adopt the IPCC AR6 best-estimate equilibrium climate sensitivity $\text{ECS}=3.0\,^{\circ}\text{C}$ per CO$_2$ doubling \citep{Forster2021IPCCAR6Ch7}, a polar ocean-surface amplification factor $\alpha_\text{sst}=2.0$ consistent with observations of Arctic SST warming being approximately two- to threefold the global-mean SST increase \citep{Meredith2019IPCCSROCC}, and a pre-industrial Atlantic equator-to-pole SST difference $\Delta T_0=30\,^{\circ}\text{C}$ (approximate Levitus climatology value). These choices yield the compact formula $\gamma(C)=0.1\log_2(C/280\,\text{ppm})$, so that $\gamma=0$ corresponds to pre-industrial \CO{} ($C_0=280\,\text{ppm}$) and $\gamma=0.1$ to a doubling of \CO{} ($C=560\,\text{ppm}$). Key benchmarks are: Keeling-curve start (1958, $315\,\text{ppm}$) $\to \gamma\approx0.017$; first IPCC report (1990, $354\,\text{ppm}$) $\to \gamma\approx0.033$; present day ($\sim$2023, $420\,\text{ppm}$) $\to \gamma\approx0.059$; doubled \CO{} ($560\,\text{ppm}$) $\to \gamma=0.1$. The model sweep therefore spans from pre-industrial conditions to approximately $740\,\text{ppm}$, with the present-day forcing level falling near the middle of the sweep.
 
-Initial-condition perturbations are applied to two smooth geographic salinity masks. The North Atlantic mask covers the surface-intensified latitude interval $x\in[130/36,5]$, corresponding approximately to $40°$--$90°\text{N}$, and the Tropical Atlantic mask covers $x\in[40/36,130/36]$, corresponding approximately to $50°\text{S}$--$40°\text{N}$. Both masks have tanh lateral transitions with half-width $0.25$ in model latitude coordinates and are multiplied by the model's surface-layer decay profile in depth. Perturbations are applied as amplitudes $(\Delta S_N,\Delta S_T)$ on a $15\times15$ grid with both coordinates spanning $[-0.25,0.25]$.
+Initial-condition perturbations are applied to two smooth geographic salinity masks. The North Atlantic mask covers the surface-intensified latitude interval $x\in[130/36,5]$, corresponding approximately to $40°$--$90°\text{N}$, and the Tropical Atlantic mask covers $x\in[40/36,130/36]$, corresponding approximately to $50°\text{S}$--$40°\text{N}$. Both masks have tanh lateral transitions with half-width $0.25$ in model latitude coordinates and are multiplied by the model's surface-layer decay profile in depth. Perturbations are applied as box-mean salinity anomalies $(\Delta S_N,\Delta S_T)$ on a $15\times15$ grid with both coordinates spanning $[-2,2]\,\psu{}$, providing uniform coverage of the relevant salinity perturbation space analogous to the dense initial-condition grids used in the box model and CLIMBER-X.
 
-For each grid point and each $\gamma$, the local anomaly is rescaled so that the mask-weighted box-mean salinity change equals the requested amplitude. A uniform compensating offset is then applied over the full domain so that the domain-mean salinity is exactly conserved.
+For each grid point and each $\gamma$, the local salinity anomaly is rescaled so that the mask-weighted box-mean change equals the requested amplitude in \psu{}. A uniform compensating offset is then applied over the full domain so that the domain-mean salinity is exactly conserved.
 
-Each perturbed run is integrated for at most $500\,000$ time steps. The integration is checked every $200$ time steps and is declared converged when the Euclidean distance between the current North/Tropical box-salinity vector and the unperturbed reference vector falls below $\varepsilon=10^{-3}$.
+Each perturbed run is integrated for at most $500\,000$ time steps. The integration is checked every $200$ time steps and is declared converged when the Euclidean distance between the current North/Tropical box-salinity vector and the unperturbed reference vector falls below $\varepsilon=0.05\,\psu{}$ (approximately $0.005$ in dimensionless model salinity units).
+
+Since the Boussinesq model is formulated in non-dimensional units, all quantities are converted to physically interpretable scales before synthesis with the other models. The overturning streamfunction $\psi$ is converted to Sverdrups by anchoring the pre-industrial equilibrium value ($\gamma=0$, $\psi_0\approx1.52$ model units) to $18\,\Sv{}$, consistent with RAPID array estimates and palaeoclimate reconstructions of the pre-industrial AMOC \citep{Ganachaud2000ImprovedEstimatesGlobal}, yielding a linear conversion factor of approximately $11.9\,\Sv{}/\psi_\text{model}$. Convergence times and characteristic return times are expressed in dimensionless model time units; we multiply both by a factor of $100$, which maps the pre-industrial mean convergence time (${\approx}1.49$ model time units) and characteristic return time (${\approx}0.47$ model time units) to year-proxy values of ${\approx}149\,\text{yr}$ and ${\approx}47\,\text{yr}$, respectively. These scaling factors are fixed at a single calibration point and serve only to facilitate cross-model comparison of directional trends; the trends with $\gamma$ are unaffected by the choice of scale.
 
 % ------------------------------------------------------------
 \subsection{CLIMBER-X}
@@ -256,6 +258,8 @@ Following \citet{Borner2025AMOCGlobalStability}, we project the high-dimensional
 These variables are derived from an EOF analysis of the Atlantic salinity field from $20\,000$ years of edge-tracking simulations \citep{Borner2025AMOCGlobalStability}; they disentangle the on-, off-, and edge-state dynamics more cleanly than the raw AMOC strength alone and permit straightforward inter-model comparisons. The on-, off-, and edge-state regions are well separated in this space, with the edge state characterised by a higher vertical SG and a fresher deep North Atlantic than either attractor.
 
 We use the edge-track data and long equilibrium runs from \citet{Borner2025AMOCGlobalStability} to compute the resilience metrics, analogous to those derived from the box model and CLIMBER-X but adapted to the available PlaSim-LSG data.
+
+PlaSim-LSG occupies a distinctive position within the hierarchy. Unlike the box model, Boussinesq model, and CLIMBER-X, which all sample many initial conditions distributed across a prescribed range of salinity perturbations, the PlaSim-LSG analysis relies exclusively on trajectories generated by edge-tracking, which by construction begin near the basin boundary. The perturbation ensemble is therefore not uniform across the basin interior but is instead concentrated in the most dynamically sensitive region of state space. Furthermore, experiments are available at only two \CO{} concentrations ($285\,\text{ppm}$ and $360\,\text{ppm}$), which restricts the resilience comparison to a single step along the forcing coordinate rather than the continuous sweep available for the other models. For the characteristic return time in the synthesis, we use the semi-major axis of the $1\sigma$ Gaussian covariance ellipse fitted to the AMOC-on attractor cloud in the $(SG_\text{mer},SG_\text{vert})$ plane, scaled by a factor of $2000$ to bring the values into a range comparable to the explicit return-time estimates from the other models; this axis length is ${\approx}64$ at $285\,\text{ppm}$ and ${\approx}50$ at $360\,\text{ppm}$, reflecting a more compact attractor cloud at higher \CO{}. These differences in experimental design and forcing coverage should be kept in mind when interpreting PlaSim-LSG's contribution to the synthesis figure.
 
 % ============================================================
 \section{Results}
@@ -330,7 +334,7 @@ ellipsoid volume) for both \CO{} levels and all three states where relevant.}
 
 \begin{figure}[p]
   \centering
-  \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{synthesis_figure.pdf}
+  \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{plots/synthesis_figure.png}
   \caption{\textbf{Cross-model synthesis of AMOC resilience metrics.}
   Model-specific resilience diagnostics are plotted against the relevant \CO{} coordinate where available. The figure juxtaposes AMOC strength, convergence-time information, stability-boundary or edge-distance proxies, and local variability or finite-time basin measures, providing the basis for assessing which resilience signals are coherent across the model hierarchy.}
   \label{fig:synthesis}
