@@ -80,6 +80,14 @@ PANELS = [
         "Critical shock / edge distance vs CO\u2082",
     ),
     (
+        "characteristic_return_time",
+        "characteristic_return_time",
+        "characteristic_return_time",
+        "ellipse_long_axis_1sigma",
+        "Char. return time / ellipse long axis",
+        "Characteristic return time vs CO\u2082",
+    ),
+    (
         "basin_stability",
         None,
         None,
@@ -143,10 +151,13 @@ def main() -> None:
         print("No data available for synthesis figure. Generate model data first.")
         sys.exit(1)
 
-    # ── Build 2×2 figure ─────────────────────────────────────────────────────
+    # ── Build figure ─────────────────────────────────────────────────────────
+    n_panels = len(PANELS)
+    ncols = 2
+    nrows = (n_panels + 1) // ncols
     fig, axes = plt.subplots(
-        2, 2,
-        figsize=(FIGURE_WIDTH, 5.5),
+        nrows, ncols,
+        figsize=(FIGURE_WIDTH, 5.5 * nrows / 2),
         constrained_layout=True,
     )
     axes_flat = axes.flatten()

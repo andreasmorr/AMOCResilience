@@ -25,7 +25,7 @@ Several shared Python files live at the repository root and are used by all subm
 | File | Purpose |
 |------|---------|
 | `amoc_plot_style.py` | Shared matplotlib style: color constants, `make_paper_figure`, `add_panel_label`, `savefig_pdf`. Imported by every `plotting_paper.py`. |
-| `synthesis_figure.py` | Cross-model resilience vs CO₂ figure (2×2 panels). Reads CSV exports from each submodule: `resilience_vs_co2_boxmodel.csv`, `resilience_vs_gamma_boussinesq.csv`, `resilience_vs_co2_climberx.csv`, `resilience_metrics.csv` (PlaSim). |
+| `synthesis_figure.py` | Cross-model resilience vs CO₂ figure (3×2 panels: AMOC strength, convergence time, critical shock/edge distance, characteristic return time, basin stability). Reads CSV exports from each submodule: `resilience_vs_co2_boxmodel.csv`, `resilience_vs_gamma_boussinesq.csv`, `resilience_vs_co2_climberx.csv`, `resilience_metrics.csv` (PlaSim). The Boussinesq AMOC strength is scaled to Sv anchored at 18 Sv pre-industrial; PlaSim uses `ellipse_long_axis_1sigma` as a CRT stand-in. |
 | `plotting_perturbations.py` | Multi-model perturbation and readout overview figure (4 columns × 2 rows): Wood-box footprints on globe, meridional cross-sections, Boussinesq 2D domain, and PlaSim EOF panels. Requires `cartopy` (falls back to flat map). |
 
 Run umbrella figures from the repository root:
