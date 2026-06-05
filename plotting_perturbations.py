@@ -104,7 +104,7 @@ def _build_ocean_mask(land_union):
 OCEAN_MASK = _build_ocean_mask(LAND_UNION)   # (36, 72) bool
 
 # Fine-resolution (0.5°) grid for smooth globe panels — land-masked via LAND_UNION
-_FINE_RES = 0.5
+_FINE_RES = 0.1
 _FINE_LON = np.arange(-179.75, 180.0, _FINE_RES)
 _FINE_LAT = np.arange( -89.75,  90.0, _FINE_RES)
 _FINE_LON_EDGES = np.concatenate([
@@ -165,6 +165,33 @@ BOXES_GLOBE = {
 BOXES_ATLANTIC = {
     "NA":   BOXES["NA"],
     "Trop": BOXES["Trop"],
+}
+
+# Narrow-band version for panel b: each box spans its full latitude range but
+# is restricted to a 5°-wide longitude strip centred on the section longitude
+# (~28°W).  This symbolises that the Boussinesq model is a 2-D (lat × depth)
+# cross-section through the Atlantic.
+_SECTION_LON_CTR = -28.0   # centre of the strip (°E)
+_BAND_WIDTH = 5.0           # degrees longitude
+BOXES_BOUS_NARROW = {
+    "NA": dict(
+        lat_min=37.5, lat_max=90.0,
+        lon_min=_SECTION_LON_CTR - _BAND_WIDTH / 2,
+        lon_max=_SECTION_LON_CTR + _BAND_WIDTH / 2,
+        depth_max=None, color=BOX_COLOR_NA, label="WOOD_NA",
+    ),
+    "Trop": dict(
+        lat_min=-47.5, lat_max=37.5,
+        lon_min=_SECTION_LON_CTR - _BAND_WIDTH / 2,
+        lon_max=_SECTION_LON_CTR + _BAND_WIDTH / 2,
+        depth_max=875.0, color=BOX_COLOR_TROP, label="WOOD_TROP",
+    ),
+    "South": dict(
+        lat_min=-90.0, lat_max=-47.5,
+        lon_min=_SECTION_LON_CTR - _BAND_WIDTH / 2,
+        lon_max=_SECTION_LON_CTR + _BAND_WIDTH / 2,
+        depth_max=450.0, color=BOX_COLOR_SOUTH, label="WOOD_SOUTH",
+    ),
 }
 
 BOXES_SHALLOW = {
@@ -249,16 +276,26 @@ SECTION_LON = float(LON[SECTION_IDX])   # actual grid longitude used
 # ---------------------------------------------------------------------------
 # Boussinesq 2D model geometry  (M=20 lat cells, N=40 depth cells)
 # Coordinate system: x ∈ [0, 5]  →  lat = x/5 * 180 − 90 (°N)
-#                    z ∈ [0, 1]  →  normalised depth (0 = surface, 1 = bottom)
+#                    z_model ∈ [0, 1]: z_model=0 = bottom, z_model=1 = surface
+# Actual depth grid is tanh-stretched: z_j(j) = 0.5 + tanh(q*(j/N−0.5))/(2·tanh(q/2))
 # ---------------------------------------------------------------------------
 BOUS_M, BOUS_N   = 20, 40
 BOUS_SMOOTH_X    = 0.25                         # tanh half-width (model units)
 BOUS_XX          = np.linspace(0.0, 5.0, BOUS_M + 1)   # (21,) latitude coords
-BOUS_ZZ          = np.linspace(0.0, 1.0, BOUS_N + 1)   # (41,) depth coords
 
-# Surface-intensified weighting h(z) ~ exp(-5z); same role as Boussinesq h(z)
-_hz   = np.exp(-5.0 * BOUS_ZZ)
-_hz  /= _hz.max()
+# Actual tanh-stretched depth grid (q=3, same as Boussinesq_2DAMOC.py)
+_q = 3
+_j = np.arange(BOUS_N + 1)
+BOUS_Z_MODEL = 0.5 + np.tanh(_q * (_j / BOUS_N - 0.5)) / (2 * np.tanh(_q / 2))
+# z_model=0 → bottom, z_model=1 → surface
+# For plotting: surface at top (0 m), so flip to z_plot = 1 - z_model
+BOUS_Z_PLOT  = 1.0 - BOUS_Z_MODEL   # 0=surface, 1=bottom (for plotting)
+
+# Actual depth weighting h(z) from the model: exp(-(1-z_model)/delta) = exp(-z_plot/delta)
+# delta = 0.05 (default in Boussinesq_2DAMOC.py)
+_BOUS_DELTA = 0.05
+_hz = np.exp(-BOUS_Z_PLOT / _BOUS_DELTA)
+_hz /= _hz.max()
 
 
 def bous_lat_mask(x_lo, x_hi):
@@ -405,6 +442,47 @@ def draw_boxes_fine_grid(ax, box_dict):
             ax.pcolormesh(_FINE_LON_EDGES, _FINE_LAT_EDGES, w2, **kw)
 
 
+def draw_section_strip_projected(ax, box_dict, lon=_SECTION_LON_CTR,
+                                  strip_half_width_m=300_000):
+    """Draw each box as a constant-projected-width strip around the section longitude.
+
+    Selects fine-grid cells whose orthographic x-coordinate is within
+    strip_half_width_m metres of the section line.  Because the selection is
+    done in projected space (not longitude degrees), the strip has constant
+    apparent width on screen regardless of latitude.
+
+    Uses the same pcolormesh path as draw_boxes_fine_grid so globe background
+    rendering is fully preserved.
+    """
+    R = 6.371e6  # Earth radius, metres
+    LON0_RAD = np.radians(-30.0)    # orthographic projection centre longitude
+    lon_sec_rad = np.radians(lon)
+
+    lon2d_rad = np.radians(np.meshgrid(_FINE_LON, _FINE_LAT)[0])   # (lat, lon)
+    lat2d_rad = np.radians(np.meshgrid(_FINE_LON, _FINE_LAT)[1])
+
+    # Orthographic x for every grid cell and for the section line at each latitude
+    x_cells   = R * np.cos(lat2d_rad) * np.sin(lon2d_rad  - LON0_RAD)
+    x_section = R * np.cos(lat2d_rad) * np.sin(lon_sec_rad - LON0_RAD)
+
+    in_strip = np.abs(x_cells - x_section) < strip_half_width_m   # (lat, lon) bool
+
+    for key, box in box_dict.items():
+        lat_ok = (_FINE_LAT >= box["lat_min"]) & (_FINE_LAT <= box["lat_max"])
+        w2 = (lat_ok[:, None] & in_strip & FINE_OCEAN_MASK).astype(float)
+
+        rgba = np.array(mcolors.to_rgba(box["color"]))
+        cmap = LinearSegmentedColormap.from_list(
+            "", [(rgba[0], rgba[1], rgba[2], 0.0), (*rgba[:3], 0.75)], N=2
+        )
+        kw = dict(cmap=cmap, vmin=0, vmax=1, shading="flat", zorder=3)
+        if HAS_CARTOPY:
+            ax.pcolormesh(_FINE_LON_EDGES, _FINE_LAT_EDGES, w2,
+                          transform=_PC_TRANSFORM, **kw)
+        else:
+            ax.pcolormesh(_FINE_LON_EDGES, _FINE_LAT_EDGES, w2, **kw)
+
+
 def draw_boxes_on_globe(ax, box_dict, taper=False):
     """Plot depth-averaged box weights on the globe as a pcolormesh.
     Used for the tapered panel where per-cell weights must be shown."""
@@ -485,34 +563,33 @@ BOUS_DEPTH_SCALE = 2000.0   # normalised depth 1 corresponds to this many metres
 
 def draw_boussinesq_panel(ax):
     """
-    2D contourf plot of the Boussinesq box masks.
-    Y-axis is in physical metres (norm_depth × BOUS_DEPTH_SCALE) so that the
-    axis can be shared with the meridional section panels.  Tick labels show
-    the original normalised-depth values.
+    pcolormesh plot of the Boussinesq box masks using the model's actual
+    tanh-stretched depth grid and h(z) weighting (delta=0.05).
+    Y-axis is in physical metres (z_plot × BOUS_DEPTH_SCALE) to match the
+    shared axis with the meridional section panels.
+    Colors match the other panels (BOX_COLOR_NA/TROP/SOUTH).
     """
-    # Scale normalised depth to metres for the shared y-axis
-    ZZ_m = BOUS_ZZ * BOUS_DEPTH_SCALE          # (41,) in metres
-    XX, ZZm = np.meshgrid(BOUS_LAT_DEG, ZZ_m)  # both (41, 21)
-    mask_n = BOUS_NORTH_MASK.T
+    from matplotlib.colors import LinearSegmentedColormap as LSC
+
+    # Convert tanh-stretched z_plot to metres (0=surface, 1=bottom in plot)
+    ZZ_m = BOUS_Z_PLOT * BOUS_DEPTH_SCALE   # (41,) in metres
+
+    mask_n = BOUS_NORTH_MASK.T   # (N+1, M+1)
     mask_t = BOUS_TROP_MASK.T
     mask_s = BOUS_SOUTH_MASK.T
 
-    # Start levels above 0 so zero-value cells are left unfilled (transparent).
-    levels = np.linspace(0.05, 1.0, 20)
-
-    cmap_s = LinearSegmentedColormap.from_list("south_dark",
-        plt.cm.Greens(np.linspace(0.50, 1.0, 256)))
-    cmap_t = LinearSegmentedColormap.from_list("trop_dark",
-        plt.cm.Oranges(np.linspace(0.38, 1.0, 256)))
-    cmap_n = LinearSegmentedColormap.from_list("north_dark",
-        plt.cm.Blues(np.linspace(0.30, 1.0, 256)))
-
-    ax.contourf(XX, ZZm, mask_s, levels=levels, cmap=cmap_s, alpha=0.95, zorder=2,
-                extend="neither")
-    ax.contourf(XX, ZZm, mask_t, levels=levels, cmap=cmap_t, alpha=0.95, zorder=3,
-                extend="neither")
-    ax.contourf(XX, ZZm, mask_n, levels=levels, cmap=cmap_n, alpha=0.95, zorder=4,
-                extend="neither")
+    for mask, color, zorder in [
+        (mask_s, BOX_COLOR_SOUTH, 2),
+        (mask_t, BOX_COLOR_TROP,  3),
+        (mask_n, BOX_COLOR_NA,    4),
+    ]:
+        rgba = np.array(mcolors.to_rgba(color))
+        cmap = LSC.from_list("", [(rgba[0], rgba[1], rgba[2], 0.0),
+                                   (*rgba[:3], 0.95)], N=256)
+        # Use vertex coords as edges; cell data = upper-left vertex value (flat shading)
+        ax.pcolormesh(BOUS_LAT_DEG, ZZ_m, mask[:-1, :-1],
+                      cmap=cmap, vmin=0, vmax=1,
+                      shading="flat", zorder=zorder)
 
     # Latitude boundary lines
     for x_edge, col in [
@@ -528,7 +605,7 @@ def draw_boussinesq_panel(ax):
     ax.set_xlim(-90, 90)
     # ylim set externally to match shared axis (2000 m); depth increases downward
     ax.set_xlabel("Latitude", fontsize=8)
-    ax.set_ylabel("Normalised depth", fontsize=8)
+    ax.set_ylabel("Depth (m)", fontsize=8)
 
     lat_ticks = np.arange(-90, 91, 30)
     ax.set_xticks(lat_ticks)
@@ -536,15 +613,10 @@ def draw_boussinesq_panel(ax):
         [f"{abs(t)}°{'N' if t >= 0 else 'S'}" for t in lat_ticks], fontsize=6.5
     )
 
-    # Y-ticks: positions in metres, labelled with normalised-depth values
-    norm_tick_vals = [0.0, 0.25, 0.5, 0.75, 1.0]
-    ax.set_yticks([v * BOUS_DEPTH_SCALE for v in norm_tick_vals])
-    ax.set_yticklabels([str(v) for v in norm_tick_vals], fontsize=6.5)
-
     ax.axvline(0, color="gray", linewidth=0.4, linestyle="--", alpha=0.5)
 
-    # Annotation: correspondence between normalised depth and metres
-    ax.text(0.98, 0.02, f"norm. depth 1 ≡ {int(BOUS_DEPTH_SCALE)} m",
+    # Annotation: normalised depth scale and weighting
+    ax.text(0.98, 0.02, f"norm. depth 1 ≡ {int(BOUS_DEPTH_SCALE)} m  |  δ = {_BOUS_DELTA}",
             transform=ax.transAxes, fontsize=6.5, ha="right", va="bottom",
             color="#444444", style="italic",
             bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.7, ec="none"))
@@ -616,7 +688,7 @@ def main():
     # ── Column 2: Boussinesq context ──────────────────────────────────────
     ax = axes_top[1]
     setup_globe(ax)
-    draw_boxes_fine_grid(ax, BOXES_GLOBE)   # identical to panel a
+    draw_section_strip_projected(ax, BOXES_BOUS_NARROW)   # constant-width strip → 2-D cross-section
     ax.set_title("Regions corresponding to Boussinesq model boxes", fontsize=8,
                  fontweight="bold")
     add_panel_label(ax, panel_labels_top[1])
@@ -657,12 +729,11 @@ def main():
     add_panel_label(ax, panel_labels_bot[3])
 
     # ── Shared y-axis for bottom panels e, f, g (depth 0–2000 m) ──────────
-    # Panel f uses metres internally (norm_depth × 2000), so ylim [2000, 0]
-    # aligns exactly with the section panels (norm depth 1 = 2000 m).
     for ax in axes_bot[:3]:
-        ax.set_ylim(2000, 0)
-    # Restore ylabel and ticks on g
-    axes_bot[2].set_ylabel("Depth (m)", fontsize=8)
+        ax.set_ylim(1200, 0)
+    # Only leftmost panel (e) keeps ylabel; f and g suppress it
+    axes_bot[1].set_ylabel("")
+    axes_bot[2].set_ylabel("")
 
     # ── Central legend between the two rows ───────────────────────────────
     legend_handles = [
