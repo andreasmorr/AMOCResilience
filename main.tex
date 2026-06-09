@@ -235,37 +235,123 @@ Following \citet{Borner2025AMOCGlobalStability}, we project the high-dimensional
 
 \section{Specifics on the 3-Box salinity model}
 \label{app:boxmodel}
+
+The model tracks salinity anomalies $S_N$ and $S_T$ (in \psu{} relative to a reference salinity $S_0 = 35\psu{}$) in the North Atlantic and Tropical Atlantic boxes. The Southern Ocean salinity $S_S$ is not an independent variable; it is determined at each instant by global salt conservation, ensuring that the total salt content across all active boxes is held fixed. The salinities $S_B$ (deep box) and $S_{IP}$ (Indo-Pacific box) appear in the equations as prescribed constants, since the dynamics of those boxes are negligibly slow on the time scales of interest.
+
 The governing equations are
 \begin{align}
 V_N \frac{\dint S_N}{\dint t}=&\,q\left[\left(\frac{K_N}{q}+\Theta(q)\right)(S_T-S_N)-\Theta(-q)(S_B-S_N)\right]-(F_N+aH)S_0\label{eq: dS_N}\\
 V_T \frac{\dint S_T}{\dint t}=&\,q\left[\Theta(q)(\gamma S_S+(1-\gamma)S_{IP}-S_T)-\left(\Theta(-q)-\frac{K_N}{q}\right)(S_N-S_T)\right]\label{eq: dS_T}\\&+K_S(S_S-S_T)-(F_T+bH)S_0\nonumber\\
 q=&\,\frac{\lambda(\alpha(T_S-T_0)+\beta(S_N-S_S))}{1+\lambda\alpha\mu}\label{eq: q}
 \end{align}
-where $V_N$ and $V_T$ are box volumes, $K_{i}$ are diffusive mixing coefficients, $F_i$ are prescribed freshwater fluxes, and $H$ is a freshwater hosing applied to the North Atlantic box (with a compensating flux applied to the Tropical box to conserve global salinity). The overturning flow $q$ (in $\text{m}^3\,\text{s}^{-1}$) depends on the meridional density contrast between the North and Tropical boxes, and $\alpha$ and $\beta$ in Eq.\eqref{eq: q} are thermal and haline expansion coefficients, and $\lambda$ is a hydraulic constant. The Heaviside function $\Theta$ separates the case of a positive or negative AMOC strength $q$ in Eqs. \eqref{eq: dS_N} and \eqref{eq: dS_T} because the sense of the overturning circulation determines which boxes exchange water. The full system, therefore, has a discontinuity in its right-hand side at $q = 0$.
+where $V_N$ and $V_T$ are box volumes; $K_N$ and $K_S$ are diffusive mixing coefficients coupling the North Atlantic to the Tropical box and the Southern Ocean to the Tropical box, respectively; $F_N$ and $F_T$ are prescribed freshwater fluxes; and $H$ is a freshwater hosing applied to the North Atlantic box (with coefficients $a$ and $b$ distributing the compensating flux to conserve global salinity). The routing parameter $\gamma \in [0,1]$ sets the fraction of the southward return flow that passes through the Southern Ocean rather than the Indo-Pacific.
 
-\todo{Table listing the 23 parameters that differ between the
-$1\times$\CO{} and $2\times$\CO{} configurations, following
-\citet{Wood20195BoxModel} and \citet{Alkhayuon2019AMOCRateTipping}.}
+The overturning flow $q$ (in $\text{m}^3\,\text{s}^{-1}$) depends on the meridional density contrast between the North Atlantic and Southern Ocean boxes. In Eq.~\eqref{eq: q}, $\alpha$ and $\beta$ are thermal and haline expansion coefficients, $\lambda$ is a hydraulic constant, $\mu$ is a geometric factor, and $T_S$ and $T_0$ are the Southern and reference temperatures, which set the thermally driven density contrast. The Heaviside function $\Theta$ separates the cases of positive and negative AMOC strength in Eqs.~\eqref{eq: dS_N} and \eqref{eq: dS_T}, because the direction of the overturning determines which boxes exchange water. The full system therefore has a discontinuity in its right-hand side at $q = 0$.
+
+All model parameters are taken directly from \citet{Wood20195BoxModel} and \citet{Alkhayuon2019AMOCRateTipping}, who calibrated two distinct parameter sets against the FAMOUS Earth System model: one for the pre-industrial climate ($1\times$\CO{}) and one for a doubled-\CO{} climate ($2\times$\CO{}). The two configurations differ in prescribed box temperatures, freshwater fluxes, box volumes, and mixing coefficients. We linearly interpolate (and extrapolate) between them to construct a continuum of model configurations indexed by \CO{} concentration, as described in Section~\ref{sec:methods:boxmodel}.
 
 \section{Specifics on the Boussinesq model}
 \label{app:boussinesq}
 
-The Boussinesq perturbation masks are defined in the model's non-dimensional
-latitude coordinate $x\in[0,5]$, where $x=0$ corresponds to $90°\text{S}$ and
-$x=5$ corresponds to $90°\text{N}$. The North Atlantic mask uses
-$x\in[130/36,5]$ and the Tropical Atlantic mask uses $x\in[40/36,130/36]$.
-These correspond approximately to $40°$--$90°\text{N}$ and
-$50°\text{S}$--$40°\text{N}$, respectively. Both masks are surface-intensified
-by the same vertical decay profile that enters the model's salinity forcing,
-and both are normalized so that the requested perturbation amplitude equals
-the mask-weighted box-mean salinity change.
+\subsection*{Physical setup}
 
-To connect the model's forcing parameter to an observationally meaningful scale, we derive an explicit mapping between atmospheric \CO{} concentration $C$ and $\gamma$. Arctic amplification reduces the equator-to-pole sea-surface temperature (SST) gradient; $\gamma$ measures this reduction as a fraction of the pre-industrial gradient $\Delta T_0$. With global warming given by the logarithmic forcing formula $\Delta T_\text{global}=\text{ECS}\log_2(C/C_0)$ and polar SST amplification $\alpha_\text{sst}$, one obtains
+The model represents a two-dimensional meridional cross-section of the ocean at non-dimensional latitude $x \in [0, 5]$ and depth $z \in [0, 1]$, where $x = 0$ corresponds to the South Pole, $x = 2.5$ to the equator, and $x = 5$ to the North Pole; $z = 0$ is the ocean floor and $z = 1$ is the surface \citep{Esclapez2026ConstructingEfficientScore}. The flow is assumed two-dimensional and incompressible under the Boussinesq approximation, in which density variations are retained only in the buoyancy term. The velocity field is derived from a streamfunction $\psi(x,z,t)$ via
 \begin{equation}
-  \gamma(C) = \frac{(\alpha_\text{sst}-1)\,\text{ECS}}{\Delta T_0}\log_2\!\left(\frac{C}{C_0}\right).
+  u = \frac{\partial \psi}{\partial z}, \qquad w = -\frac{\partial \psi}{\partial x},
+  \label{eq:vel_bous}
+\end{equation}
+where $u$ is the horizontal (meridional) velocity and $w$ is the vertical velocity. The vorticity is $\omega = -\nabla^2\psi$. The non-dimensional governing parameters and their default values used in all simulations are given in Table~\ref{tab:boussinesq-params}.
+
+\begin{table}[h]
+  \centering
+  \caption{Default non-dimensional parameters for the Boussinesq model.}
+  \label{tab:boussinesq-params}
+  \begin{tabular}{lll}
+    \toprule
+    Symbol & Value & Physical meaning \\
+    \midrule
+    $\mathrm{Pr}$   & $1$              & Prandtl number ($\nu/\kappa_T$) \\
+    $\mathrm{Le}$   & $1$              & Lewis number ($\kappa_T/\kappa_S$) \\
+    $\mathrm{Ra}$   & $4\times10^4$    & Rayleigh number \\
+    $a$             & $5$              & Domain length (pole-to-pole) \\
+    $\delta$        & $0.05$           & Surface boundary-layer thickness \\
+    $\tau_T$        & $0.1$            & Thermal restoring time scale \\
+    $\tau_S$        & $1.0$            & Salinity flux time scale \\
+    $\beta_s$       & $0.1$            & Salinity hemispheric asymmetry \\
+    $M,\,N$         & $20,\,40$        & Latitude $\times$ depth grid points \\
+    $\Delta t$      & $10^{-3}$        & Time step \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection*{Governing equations}
+
+Temperature $T$, salinity $S$, and vorticity $\omega$ evolve according to coupled advection–diffusion equations with surface forcing:
+\begin{align}
+  \frac{\partial T}{\partial t} + u\frac{\partial T}{\partial x} + w\frac{\partial T}{\partial z}
+    &= \nabla^2 T + \frac{h(z)}{\tau_T}\bigl(T_s^\gamma(x) - T\bigr), \label{eq:bous_T}\\[4pt]
+  \frac{\partial S}{\partial t} + u\frac{\partial S}{\partial x} + w\frac{\partial S}{\partial z}
+    &= \frac{1}{\mathrm{Le}}\nabla^2 S + \frac{h(z)}{\tau_S}\,S_s(x), \label{eq:bous_S}\\[4pt]
+  \frac{\partial \omega}{\partial t} + u\frac{\partial \omega}{\partial x} + w\frac{\partial \omega}{\partial z}
+    &= \mathrm{Pr}\,\nabla^2\omega + \mathrm{Pr}\cdot\mathrm{Ra}\,\frac{\partial}{\partial x}(T - S), \label{eq:bous_omega}\\[4pt]
+  \nabla^2\psi &= -\omega. \label{eq:bous_psi}
+\end{align}
+
+The surface boundary-layer profile $h(z) = \exp(-(1-z)/\delta)$ confines the surface forcing to the uppermost ocean. The temperature equation relaxes towards the prescribed surface profile with time scale $\tau_T$; a smaller $\tau_T$ enforces temperature more strongly towards $T_s$. For salinity, a fixed flux formulation is used instead of a relaxation, which is physically appropriate since ocean salinity is set by freshwater exchange with the atmosphere rather than by direct relaxation to a reference profile. A global salinity correction is applied at each time step to conserve domain-mean salinity exactly.
+
+The surface temperature profile is
+\begin{equation}
+  T_s(x) = \tfrac{1}{2}\!\left[\cos\!\left(\tfrac{2\pi x}{a} - \pi\right) + 1\right],
+  \label{eq:Ts}
+\end{equation}
+giving $T_s = 0$ at both poles and $T_s = 1$ at the equator. This equator-to-pole contrast drives the horizontal density gradient that sustains the overturning. The surface salinity flux is
+\begin{equation}
+  S_s(x) = 3.5\cos\!\left(\tfrac{2\pi x}{a} - \pi\right) - \beta_s\sin\!\left(\tfrac{\pi x}{a} - \tfrac{\pi}{2}\right),
+  \label{eq:Ss}
+\end{equation}
+where the dominant cosine term represents the atmospheric evaporation–precipitation cycle (net evaporation in the tropics, net precipitation at high latitudes) and the $\beta_s$ term introduces a weak hemispheric asymmetry that adds a slight freshwater excess in the northern high latitudes relative to the south, physically motivated by the greater land area and different hydrological cycle of the Northern Hemisphere.
+
+The vorticity equation~\eqref{eq:bous_omega} is obtained by taking the curl of the momentum equation. The baroclinic production term $\mathrm{Pr}\cdot\mathrm{Ra}\,\partial_x(T-S)$ encodes the linearised equation of state under the Boussinesq approximation: density anomalies $\rho \propto -(T - S)$ create horizontal density contrasts that drive overturning vorticity. The product $\mathrm{Pr}\cdot\mathrm{Ra} = 4\times10^4$ governs the balance between advective and diffusive vorticity transport and is the primary control on whether a sustained circulation develops.
+
+\subsection*{Boundary conditions and numerical discretisation}
+
+No-flux ($\partial_n T = \partial_n S = 0$) and no-slip conditions are imposed on all lateral boundaries. The streamfunction satisfies $\psi = 0$ on all walls, consistent with a closed domain with no net overturning flux through any boundary. The depth coordinate is discretised on a non-uniform grid that concentrates points near the surface and the ocean floor via the mapping
+\begin{equation}
+  z_j = \tfrac{1}{2} + \frac{\tanh\!\bigl(3(j/N - \tfrac{1}{2})\bigr)}{2\tanh(3/2)}, \qquad j = 0,\ldots,N,
+  \label{eq:zgrid}
+\end{equation}
+and the latitude coordinate uses a uniform grid. Spatial derivatives are approximated by second-order finite differences. Equations~\eqref{eq:bous_T}--\eqref{eq:bous_omega} are integrated using an implicit-explicit (IMEX) scheme with time step $\Delta t = 10^{-3}$: diffusion and surface-restoring terms are treated implicitly to avoid the diffusive CFL restriction, while advection terms are treated explicitly. The implicit step at each time leads to a separable Sylvester equation that is solved with the Bartels--Stewart algorithm.
+
+\subsection*{Arctic amplification and \CO{} mapping}
+
+To sweep the model across different climate states, the surface temperature forcing is modified to mimic Arctic amplification by blending the standard profile towards its spatial mean:
+\begin{equation}
+  T_s^\gamma(x) = (1-\gamma)\,T_s(x) + \tfrac{\gamma}{2},
+  \label{eq:Tgamma}
+\end{equation}
+where $\overline{T_s} = 1/2$ is the domain-mean surface temperature and $\gamma \in [0,1]$ measures the degree of Arctic amplification. At $\gamma = 0$ the forcing is unchanged (pre-industrial); increasing $\gamma$ reduces the equator-to-pole temperature gradient, weakening the baroclinic torque in \eqref{eq:bous_omega} and thereby reducing the thermal driving of the overturning.
+
+A physically grounded mapping between $\gamma$ and atmospheric \CO{} concentration $C$ is derived from the logarithmic forcing formula and an estimate of polar ocean-surface amplification:
+\begin{equation}
+  \gamma(C) = \frac{(\alpha_\text{sst}-1)\,\text{ECS}}{\Delta T_0}\log_2\!\left(\frac{C}{C_0}\right)
+  = 0.1\log_2\!\left(\frac{C}{280\,\text{ppm}}\right).
   \label{eq:co2_gamma}
 \end{equation}
-We adopt the IPCC AR6 best-estimate equilibrium climate sensitivity $\text{ECS}=3.0\,^{\circ}\text{C}$ per CO$_2$ doubling \citep{Forster2021IPCCAR6Ch7}, a polar ocean-surface amplification factor $\alpha_\text{sst}=2.0$ consistent with observations of Arctic SST warming being approximately two- to threefold the global-mean SST increase \citep{Meredith2019IPCCSROCC}, and a pre-industrial Atlantic equator-to-pole SST difference $\Delta T_0=30\,^{\circ}\text{C}$ (approximate Levitus climatology value). These choices yield the compact formula $\gamma(C)=0.1\log_2(C/280\,\text{ppm})$, so that $\gamma=0$ corresponds to pre-industrial \CO{} ($C_0=280\,\text{ppm}$) and $\gamma=0.1$ to a doubling of \CO{} ($C=560\,\text{ppm}$). Key benchmarks are: Keeling-curve start (1958, $315\,\text{ppm}$) $\to \gamma\approx0.017$; first IPCC report (1990, $354\,\text{ppm}$) $\to \gamma\approx0.033$; present day ($\sim$2023, $420\,\text{ppm}$) $\to \gamma\approx0.059$; doubled \CO{} ($560\,\text{ppm}$) $\to \gamma=0.1$. The model sweep therefore spans from pre-industrial conditions to approximately $740\,\text{ppm}$, with the present-day forcing level falling near the middle of the sweep.
+We adopt the IPCC AR6 best-estimate equilibrium climate sensitivity $\text{ECS} = 3.0\,^\circ\text{C}$ per \CO{} doubling \citep{Forster2021IPCCAR6Ch7}, a polar ocean-surface amplification factor $\alpha_\text{sst} = 2.0$ consistent with observed Arctic SST warming being approximately two- to threefold the global-mean increase \citep{Meredith2019IPCCSROCC}, and a pre-industrial Atlantic equator-to-pole SST difference $\Delta T_0 = 30\,^\circ\text{C}$ (approximate Levitus climatology value). These choices give $\gamma = 0$ at pre-industrial \CO{} ($C_0 = 280\,\text{ppm}$) and $\gamma = 0.1$ at doubled \CO{} ($560\,\text{ppm}$). The model sweep covers 15 uniformly spaced values of $\gamma \in [0, 0.14]$, corresponding to \CO{} concentrations from $280\,\text{ppm}$ to approximately $740\,\text{ppm}$.
+
+\subsection*{Perturbation geometry and physical scaling}
+
+Each salinity box is defined by a smooth mask $m_\mathcal{B}(x,z)$ that localises the perturbation while avoiding numerical artefacts from sharp boundaries:
+\begin{equation}
+  m_\mathcal{B}(x,z) = h(z)\cdot\tfrac{1}{2}\!\left[
+    \tanh\!\left(\tfrac{x - x_\mathrm{lo}}{\ell}\right)
+    - \tanh\!\left(\tfrac{x - x_\mathrm{hi}}{\ell}\right)
+  \right],
+  \label{eq:mask}
+\end{equation}
+with transition half-width $\ell = 0.25$ in non-dimensional latitude units, normalised so that the mask-weighted box-mean equals one. The North Atlantic box covers $x \in [130/36, 5]$ (approximately $40^\circ$--$90^\circ\text{N}$) and the Tropical Atlantic box covers $x \in [40/36, 130/36]$ (approximately $50^\circ\text{S}$--$40^\circ\text{N}$). A perturbation $(\Delta S_N, \Delta S_T)$ is applied by finding field amplitudes that achieve the target box-mean shifts simultaneously; a uniform compensating offset is then subtracted from the full domain to conserve domain-mean salinity.
+
+The overturning streamfunction is converted to Sverdrups by anchoring the pre-industrial ($\gamma = 0$) equilibrium value $\psi_0 \approx 1.52$ model units to the RAPID array estimate of $18\Sv{}$, giving a linear conversion factor of approximately $11.9\Sv{}/\psi_\text{model}$. Convergence times are converted to year-proxy values by a factor of 100, fixed by matching the pre-industrial mean convergence time ($\approx 1.49$ model units) to centennial-scale relaxation times found in full ocean GCMs; all trends with $\gamma$ are unaffected by this single-point calibration.
 
 \section{Specifics on the CLIMBER-X model}
 \label{app:regions}
