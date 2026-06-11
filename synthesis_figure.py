@@ -52,17 +52,19 @@ CLIMBERX_CSV   = UMBRELLA / "AMOCClimberX"  / "data" / "paper" / "resilience_vs_
 # Panel definitions
 # ---------------------------------------------------------------------------
 
+# Top panel (full width): AMOC strength
+AMOC_PANEL = (
+    "amoc_strength_sv",
+    "amoc_strength",
+    "amoc_strength",
+    "mean_amoc_strength_Sv",
+    "AMOC strength (Sv)",
+    "AMOC strength",
+)
+
 # Each entry: (box_measure, boussinesq_measure, climberx_measure, plasim_column, ylabel, title)
 # Use None where a model does not provide that measure.
 PANELS = [
-    (
-        "amoc_strength_sv",
-        "amoc_strength",
-        "amoc_strength",
-        "mean_amoc_strength_Sv",
-        "AMOC strength (Sv)",
-        "AMOC strength",
-    ),
     (
         "mean_convergence_time",
         "mean_convergence_time",
@@ -86,6 +88,14 @@ PANELS = [
         "ellipse_long_axis_1sigma",
         "Char. return time / ellipse long axis",
         "Characteristic return time",
+    ),
+    (
+        "basin_stability",
+        "basin_volume",
+        None,
+        None,
+        "Basin volume / stability",
+        "Basin volume",
     ),
 ]
 
@@ -132,6 +142,103 @@ COL_CLIMBERX = "#4D0099"  # purple for CLIMBER-X
 COL_PLASIM   = "#D95F02"  # orange for PlaSim
 
 
+def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
+                ylabel, panel_title, df_box, df_plasim, df_boussinesq, df_climberx,
+                xlabel=False):
+    """Plot a single resilience-measure panel onto *ax*."""
+
+    # ── Box model scatter ─────────────────────────────────────────────────
+    if df_box is not None and box_measure is not None:
+        sub = df_box[
+            (df_box["measure"] == box_measure) &
+            (df_box["attractor"] == "on")
+        ].sort_values("co2_ppm")
+
+        if not sub.empty:
+            ax.scatter(
+                sub["co2_ppm"].values,
+                sub["value"].values,
+                color=COL_ON,
+                marker="o",
+                s=20,
+                label="3-box model",
+                zorder=3,
+            )
+        else:
+            # Try without attractor filter (e.g. amoc_strength_sv)
+            sub_all = df_box[df_box["measure"] == box_measure].sort_values("co2_ppm")
+            if not sub_all.empty:
+                ax.scatter(
+                    sub_all["co2_ppm"].values,
+                    sub_all["value"].values,
+                    color=COL_ON,
+                    marker="o",
+                    s=20,
+                    label="3-box model",
+                    zorder=3,
+                )
+
+    # ── PlaSim points ─────────────────────────────────────────────────────
+    if df_plasim is not None and plasim_col is not None and plasim_col in df_plasim.columns:
+        sub_p = df_plasim[df_plasim["state"] == "AMOC-on"].dropna(
+            subset=["co2_ppm", plasim_col]
+        )
+        if not sub_p.empty:
+            ax.scatter(
+                sub_p["co2_ppm"].values,
+                sub_p[plasim_col].values,
+                color=COL_PLASIM,
+                marker="^",
+                s=50,
+                zorder=5,
+                label="PlaSim",
+                edgecolors="white",
+                linewidths=0.5,
+            )
+
+    # ── Boussinesq scatter ────────────────────────────────────────────────
+    if df_boussinesq is not None and bous_measure is not None:
+        sub_b = df_boussinesq[
+            (df_boussinesq["measure"] == bous_measure) &
+            (df_boussinesq["attractor"] == "on")
+        ].sort_values("co2_ppm")
+        if not sub_b.empty:
+            ax.scatter(
+                sub_b["co2_ppm"].values,
+                sub_b["value"].values,
+                color=COL_BOUS,
+                marker="D",
+                s=20,
+                label="Boussinesq",
+                zorder=3,
+            )
+
+    # ── CLIMBER-X scatter ─────────────────────────────────────────────────
+    if df_climberx is not None and cx_measure is not None:
+        sub_cx = df_climberx[
+            (df_climberx["measure"] == cx_measure) &
+            (df_climberx["attractor"] == "on")
+        ].sort_values("co2_ppm")
+        if not sub_cx.empty:
+            ax.scatter(
+                sub_cx["co2_ppm"].values,
+                sub_cx["value"].values,
+                color=COL_CLIMBERX,
+                marker="s",
+                s=50,
+                zorder=5,
+                label="CLIMBER-X",
+                edgecolors="white",
+                linewidths=0.5,
+            )
+
+    ax.set_title(panel_title, fontsize=8)
+    ax.set_ylabel(ylabel, fontsize=8)
+    ax.tick_params(labelsize=7)
+    if xlabel:
+        ax.set_xlabel("CO\u2082 concentration (ppm)", fontsize=8)
+
+
 def main() -> None:
     apply_style()
 
@@ -145,132 +252,58 @@ def main() -> None:
         sys.exit(1)
 
     # ── Build figure ─────────────────────────────────────────────────────────
-    n_panels = len(PANELS)
+    # Layout: AMOC strength spans full width (top row),
+    # then 2×2 grid for the four resilience measure panels.
+    from matplotlib.gridspec import GridSpec
+
     ncols = 2
-    nrows = (n_panels + 1) // ncols
-    fig, axes = plt.subplots(
-        nrows, ncols,
-        figsize=(FIGURE_WIDTH, 5.5 * nrows / 2),
-        constrained_layout=True,
-        sharex="col",
+    n_res_panels = len(PANELS)               # 4
+    n_res_rows   = (n_res_panels + 1) // ncols  # 2
+    nrows_total  = 1 + n_res_rows            # 3
+
+    fig = plt.figure(figsize=(FIGURE_WIDTH, 3.0 + 2.5 * n_res_rows),
+                     constrained_layout=True)
+    gs  = GridSpec(nrows_total, ncols, figure=fig,
+                   height_ratios=[1.0] + [1.0] * n_res_rows)
+
+    # Top panel – AMOC strength
+    ax_amoc = fig.add_subplot(gs[0, :])
+    _plot_panel(
+        ax_amoc,
+        *AMOC_PANEL,
+        df_box, df_plasim, df_boussinesq, df_climberx,
+        xlabel=False,
     )
-    axes_flat = axes.flatten()
+    ax_amoc.text(0.03, 0.97, "(a)",
+                 transform=ax_amoc.transAxes,
+                 fontsize=9, fontweight="bold", va="top", ha="left")
 
+    # Resilience-measure panels – 2×2 grid
+    panel_labels = ["(b)", "(c)", "(d)", "(e)"]
     for panel_idx, (box_measure, bous_measure, cx_measure, plasim_col, ylabel, panel_title) in enumerate(PANELS):
-        ax = axes_flat[panel_idx]
+        row = 1 + panel_idx // ncols
+        col = panel_idx % ncols
+        is_last_row = (row == nrows_total - 1)
 
-        # ── Box model scatter ─────────────────────────────────────────────────
-        if df_box is not None:
-            sub = df_box[
-                (df_box["measure"] == box_measure) &
-                (df_box["attractor"] == "on")
-            ].sort_values("co2_ppm")
-
-            if not sub.empty:
-                ax.scatter(
-                    sub["co2_ppm"].values,
-                    sub["value"].values,
-                    color=COL_ON,
-                    marker="o",
-                    s=20,
-                    label="3-box model",
-                    zorder=3,
-                )
-            else:
-                # Try without attractor filter (e.g. amoc_strength_sv)
-                sub_all = df_box[df_box["measure"] == box_measure].sort_values("co2_ppm")
-                if not sub_all.empty:
-                    ax.scatter(
-                        sub_all["co2_ppm"].values,
-                        sub_all["value"].values,
-                        color=COL_ON,
-                        marker="o",
-                        s=20,
-                        label="3-box model",
-                        zorder=3,
-                    )
-
-        # ── PlaSim points ─────────────────────────────────────────────────────
-        if df_plasim is not None and plasim_col in df_plasim.columns:
-            for state, color, marker in [
-                ("AMOC-on",  COL_PLASIM,  "^"),
-            ]:
-                sub_p = df_plasim[df_plasim["state"] == state].dropna(
-                    subset=["co2_ppm", plasim_col]
-                )
-                if not sub_p.empty:
-                    ax.scatter(
-                        sub_p["co2_ppm"].values,
-                        sub_p[plasim_col].values,
-                        color=color,
-                        marker=marker,
-                        s=50,
-                        zorder=5,
-                        label="PlaSim",
-                        edgecolors="white",
-                        linewidths=0.5,
-                    )
-
-        # ── Boussinesq scatter ────────────────────────────────────────────────
-        if df_boussinesq is not None and bous_measure is not None:
-            sub_b = df_boussinesq[
-                (df_boussinesq["measure"] == bous_measure) &
-                (df_boussinesq["attractor"] == "on")
-            ].sort_values("co2_ppm")
-            if not sub_b.empty:
-                ax.scatter(
-                    sub_b["co2_ppm"].values,
-                    sub_b["value"].values,
-                    color=COL_BOUS,
-                    marker="D",
-                    s=20,
-                    label="Boussinesq",
-                    zorder=3,
-                )
-
-        # ── CLIMBER-X scatter ─────────────────────────────────────────────────
-        if df_climberx is not None and cx_measure is not None:
-            sub_cx = df_climberx[
-                (df_climberx["measure"] == cx_measure) &
-                (df_climberx["attractor"] == "on")
-            ].sort_values("co2_ppm")
-            if not sub_cx.empty:
-                ax.scatter(
-                    sub_cx["co2_ppm"].values,
-                    sub_cx["value"].values,
-                    color=COL_CLIMBERX,
-                    marker="s",
-                    s=50,
-                    zorder=5,
-                    label="CLIMBER-X",
-                    edgecolors="white",
-                    linewidths=0.5,
-                )
-
-
-        ax.set_title(panel_title, fontsize=8)
-        ax.set_ylabel(ylabel, fontsize=8)
-        ax.tick_params(labelsize=7)
-        if panel_idx // ncols == nrows - 1:
-            ax.set_xlabel("CO\u2082 concentration (ppm)", fontsize=8)
-
-
-    # Panel labels
-    for idx, label in enumerate(["(a)", "(b)", "(c)", "(d)"]):
-        ax = axes_flat[idx]
-        ax.text(0.03, 0.97, label,
+        ax = fig.add_subplot(gs[row, col])
+        _plot_panel(
+            ax,
+            box_measure, bous_measure, cx_measure, plasim_col,
+            ylabel, panel_title,
+            df_box, df_plasim, df_boussinesq, df_climberx,
+            xlabel=is_last_row,
+        )
+        ax.text(0.03, 0.97, panel_labels[panel_idx],
                 transform=ax.transAxes,
-                fontsize=9, fontweight="bold",
-                va="top", ha="left")
+                fontsize=9, fontweight="bold", va="top", ha="left")
 
-    # Shared legend (model identification) — placed below figure
+    # Shared legend – placed below figure
     from matplotlib.lines import Line2D
-    from matplotlib.patches import Patch
     legend_elements = [
-        Line2D([0], [0], color=COL_ON,       lw=0,  marker="o", markersize=6, label="3-box model"),
-        Line2D([0], [0], color=COL_BOUS,    lw=0,  marker="D", markersize=6, label="Boussinesq"),
-        Line2D([0], [0], color=COL_CLIMBERX, lw=0,  marker="s", markersize=6, label="CLIMBER-X"),
-        Line2D([0], [0], color=COL_PLASIM,   lw=0,  marker="^", markersize=6, label="PlaSim"),
+        Line2D([0], [0], color=COL_ON,       lw=0, marker="o", markersize=6, label="3-box model"),
+        Line2D([0], [0], color=COL_BOUS,     lw=0, marker="D", markersize=6, label="Boussinesq"),
+        Line2D([0], [0], color=COL_CLIMBERX, lw=0, marker="s", markersize=6, label="CLIMBER-X"),
+        Line2D([0], [0], color=COL_PLASIM,   lw=0, marker="^", markersize=6, label="PlaSim"),
     ]
     fig.legend(
         handles=legend_elements,
