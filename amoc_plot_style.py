@@ -64,7 +64,7 @@ COL_OFF  = "#D6604D"   # AMOC-off attractor / high CO2 (orange-red)
 COL_EDGE = "#1A1A1A"   # edge state (near-black)
 
 BASIN_ON_FILL  = "#D1E5F0"   # pale blue fill for on-basin
-BASIN_OFF_FILL = "#FDDBC7"   # pale orange fill for off-basin
+BASIN_OFF_FILL = "#F7E1DD"   # pale red fill for off-basin (matches COL_OFF hue)
 
 TRAJ_COLORS = ["#1B7837", "#762A83", "#E08214", "#35978F"]  # green, purple, orange, teal
 

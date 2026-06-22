@@ -40,12 +40,28 @@ from amoc_plot_style import (
     apply_style, savefig_pdf,
 )
 
-FIGURE_WIDTH = 10.0   # inches
+FIGURE_WIDTH = 7.0   # inches
 
 BOX_CSV        = UMBRELLA / "AMOCBox"        / "data" / "paper" / "resilience_vs_co2_boxmodel.csv"
 PLASIM_CSV     = UMBRELLA / "AMOCPlaSim"    / "data" / "plasim" / "resilience_metrics.csv"
 BOUSSINESQ_CSV = UMBRELLA / "AMOCBoussinesq" / "data" / "paper" / "resilience_vs_gamma_boussinesq.csv"
 CLIMBERX_CSV   = UMBRELLA / "AMOCClimberX"  / "data" / "paper" / "resilience_vs_co2_climberx.csv"
+
+# Maximum parameter values; rows beyond these are excluded (None = no cutoff)
+BOX_MAX_CO2      = 500    # ppm
+BOX_MAX_GAMMA    = None
+BOUS_MAX_GAMMA   = 0.069
+BOUS_MAX_CO2     = None
+PLASIM_MAX_CO2   = None
+CLIMBERX_MAX_CO2 = None
+
+# Minimum parameter values; rows below these are excluded (None = no cutoff)
+BOX_MIN_CO2      = None
+BOX_MIN_GAMMA    = None
+BOUS_MIN_GAMMA   = None
+BOUS_MIN_CO2     = None
+PLASIM_MIN_CO2   = None
+CLIMBERX_MIN_CO2 = 300    # ppm
 
 
 # ---------------------------------------------------------------------------
@@ -64,38 +80,40 @@ AMOC_PANEL = (
 
 # Each entry: (box_measure, boussinesq_measure, climberx_measure, plasim_column, ylabel, title)
 # Use None where a model does not provide that measure.
+# Order: (b) local resilience, (c) convergence time, (d) basin volume, (e) critical shock.
+# b+d share x-axis (left column); c+e share x-axis (right column).
 PANELS = [
-    (
-        "mean_convergence_time",
-        "mean_convergence_time",
-        "mean_convergence_time",
-        "mean_conv_time_yr",
-        "Mean convergence time (yr)",
-        "Convergence time",
-    ),
-    (
-        "minimal_critical_shock_magnitude",
-        None,
-        None,
-        "mean_edge_dist",
-        "Edge\u2013attractor distance (EOF units)",
-        "Critical shock / edge distance",
-    ),
     (
         "characteristic_return_time",
         "characteristic_return_time",
         "characteristic_return_time",
         "ellipse_long_axis_1sigma",
-        "Char. return time / ellipse long axis",
-        "Characteristic return time",
+        "Local resilience",
+        "Local resilience",
+    ),
+    (
+        "mean_convergence_time",
+        "mean_convergence_time",
+        "mean_convergence_time",
+        "mean_conv_time_yr",
+        "Convergence time",
+        "Convergence time",
     ),
     (
         "basin_stability",
         "basin_volume",
         None,
         None,
-        "Basin volume / stability",
         "Basin volume",
+        "Basin volume",
+    ),
+    (
+        "minimal_critical_shock_magnitude",
+        "min_critical_shock",
+        None,
+        "mean_edge_dist",
+        "Minimal critical shock",
+        "Critical shock",
     ),
 ]
 
@@ -109,6 +127,14 @@ def load_box_model() -> pd.DataFrame | None:
         print("  Run amoc3box_co2_continuation.jl first.")
         return None
     df = pd.read_csv(BOX_CSV)
+    if BOX_MIN_CO2 is not None:
+        df = df[df["co2_ppm"] >= BOX_MIN_CO2]
+    if BOX_MAX_CO2 is not None:
+        df = df[df["co2_ppm"] <= BOX_MAX_CO2]
+    if BOX_MIN_GAMMA is not None and "gamma" in df.columns:
+        df = df[df["gamma"] >= BOX_MIN_GAMMA]
+    if BOX_MAX_GAMMA is not None and "gamma" in df.columns:
+        df = df[df["gamma"] <= BOX_MAX_GAMMA]
     return df
 
 
@@ -116,21 +142,40 @@ def load_plasim() -> pd.DataFrame | None:
     if not PLASIM_CSV.exists():
         print(f"[PlaSim] CSV not found: {PLASIM_CSV}")
         return None
-    return pd.read_csv(PLASIM_CSV)
+    df = pd.read_csv(PLASIM_CSV)
+    if PLASIM_MIN_CO2 is not None:
+        df = df[df["co2_ppm"] >= PLASIM_MIN_CO2]
+    if PLASIM_MAX_CO2 is not None:
+        df = df[df["co2_ppm"] <= PLASIM_MAX_CO2]
+    return df
 
 
 def load_boussinesq() -> pd.DataFrame | None:
     if not BOUSSINESQ_CSV.exists():
         print(f"[Boussinesq] CSV not found: {BOUSSINESQ_CSV}")
         return None
-    return pd.read_csv(BOUSSINESQ_CSV)
+    df = pd.read_csv(BOUSSINESQ_CSV)
+    if BOUS_MIN_GAMMA is not None and "gamma" in df.columns:
+        df = df[df["gamma"] >= BOUS_MIN_GAMMA]
+    if BOUS_MAX_GAMMA is not None and "gamma" in df.columns:
+        df = df[df["gamma"] <= BOUS_MAX_GAMMA]
+    if BOUS_MIN_CO2 is not None and "co2_ppm" in df.columns:
+        df = df[df["co2_ppm"] >= BOUS_MIN_CO2]
+    if BOUS_MAX_CO2 is not None and "co2_ppm" in df.columns:
+        df = df[df["co2_ppm"] <= BOUS_MAX_CO2]
+    return df
 
 
 def load_climberx() -> pd.DataFrame | None:
     if not CLIMBERX_CSV.exists():
         print(f"[CLIMBER-X] CSV not found: {CLIMBERX_CSV}")
         return None
-    return pd.read_csv(CLIMBERX_CSV)
+    df = pd.read_csv(CLIMBERX_CSV)
+    if CLIMBERX_MIN_CO2 is not None:
+        df = df[df["co2_ppm"] >= CLIMBERX_MIN_CO2]
+    if CLIMBERX_MAX_CO2 is not None:
+        df = df[df["co2_ppm"] <= CLIMBERX_MAX_CO2]
+    return df
 
 
 # ---------------------------------------------------------------------------
@@ -147,7 +192,7 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
                 xlabel=False):
     """Plot a single resilience-measure panel onto *ax*."""
 
-    # ── Box model scatter ─────────────────────────────────────────────────
+    # ── Box model line ────────────────────────────────────────────────────
     if df_box is not None and box_measure is not None:
         sub = df_box[
             (df_box["measure"] == box_measure) &
@@ -155,12 +200,11 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
         ].sort_values("co2_ppm")
 
         if not sub.empty:
-            ax.scatter(
+            ax.plot(
                 sub["co2_ppm"].values,
                 sub["value"].values,
                 color=COL_ON,
-                marker="o",
-                s=20,
+                lw=1.5,
                 label="3-box model",
                 zorder=3,
             )
@@ -168,12 +212,11 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
             # Try without attractor filter (e.g. amoc_strength_sv)
             sub_all = df_box[df_box["measure"] == box_measure].sort_values("co2_ppm")
             if not sub_all.empty:
-                ax.scatter(
+                ax.plot(
                     sub_all["co2_ppm"].values,
                     sub_all["value"].values,
                     color=COL_ON,
-                    marker="o",
-                    s=20,
+                    lw=1.5,
                     label="3-box model",
                     zorder=3,
                 )
@@ -196,19 +239,18 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
                 linewidths=0.5,
             )
 
-    # ── Boussinesq scatter ────────────────────────────────────────────────
+    # ── Boussinesq line ───────────────────────────────────────────────────
     if df_boussinesq is not None and bous_measure is not None:
         sub_b = df_boussinesq[
             (df_boussinesq["measure"] == bous_measure) &
             (df_boussinesq["attractor"] == "on")
         ].sort_values("co2_ppm")
         if not sub_b.empty:
-            ax.scatter(
+            ax.plot(
                 sub_b["co2_ppm"].values,
                 sub_b["value"].values,
                 color=COL_BOUS,
-                marker="D",
-                s=20,
+                lw=1.5,
                 label="Boussinesq",
                 zorder=3,
             )
@@ -220,16 +262,13 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
             (df_climberx["attractor"] == "on")
         ].sort_values("co2_ppm")
         if not sub_cx.empty:
-            ax.scatter(
+            ax.plot(
                 sub_cx["co2_ppm"].values,
                 sub_cx["value"].values,
                 color=COL_CLIMBERX,
-                marker="s",
-                s=50,
+                lw=1.5,
                 zorder=5,
                 label="CLIMBER-X",
-                edgecolors="white",
-                linewidths=0.5,
             )
 
     ax.set_title(panel_title, fontsize=8)
@@ -254,6 +293,7 @@ def main() -> None:
     # ── Build figure ─────────────────────────────────────────────────────────
     # Layout: AMOC strength spans full width (top row),
     # then 2×2 grid for the four resilience measure panels.
+    # Column pairs share x-axes: (b,d) left column, (c,e) right column.
     from matplotlib.gridspec import GridSpec
 
     ncols = 2
@@ -261,7 +301,7 @@ def main() -> None:
     n_res_rows   = (n_res_panels + 1) // ncols  # 2
     nrows_total  = 1 + n_res_rows            # 3
 
-    fig = plt.figure(figsize=(FIGURE_WIDTH, 3.0 + 2.5 * n_res_rows),
+    fig = plt.figure(figsize=(FIGURE_WIDTH, 2.0 + 1.7 * n_res_rows),
                      constrained_layout=True)
     gs  = GridSpec(nrows_total, ncols, figure=fig,
                    height_ratios=[1.0] + [1.0] * n_res_rows)
@@ -278,21 +318,29 @@ def main() -> None:
                  transform=ax_amoc.transAxes,
                  fontsize=9, fontweight="bold", va="top", ha="left")
 
-    # Resilience-measure panels – 2×2 grid
+    # Resilience-measure panels – 2×2 grid with shared x-axes per column
     panel_labels = ["(b)", "(c)", "(d)", "(e)"]
+    ax_panels: list = [None] * n_res_panels
     for panel_idx, (box_measure, bous_measure, cx_measure, plasim_col, ylabel, panel_title) in enumerate(PANELS):
         row = 1 + panel_idx // ncols
         col = panel_idx % ncols
-        is_last_row = (row == nrows_total - 1)
+        is_bottom_row = (row == nrows_total - 1)
 
-        ax = fig.add_subplot(gs[row, col])
+        # share x with the top panel in the same column
+        sharex_ax = ax_panels[col] if ax_panels[col] is not None else None
+        ax = fig.add_subplot(gs[row, col], sharex=sharex_ax)
+        ax_panels[panel_idx] = ax
+
         _plot_panel(
             ax,
             box_measure, bous_measure, cx_measure, plasim_col,
             ylabel, panel_title,
             df_box, df_plasim, df_boussinesq, df_climberx,
-            xlabel=is_last_row,
+            xlabel=is_bottom_row,
         )
+        if not is_bottom_row:
+            plt.setp(ax.get_xticklabels(), visible=False)
+
         ax.text(0.03, 0.97, panel_labels[panel_idx],
                 transform=ax.transAxes,
                 fontsize=9, fontweight="bold", va="top", ha="left")
@@ -300,10 +348,10 @@ def main() -> None:
     # Shared legend – placed below figure
     from matplotlib.lines import Line2D
     legend_elements = [
-        Line2D([0], [0], color=COL_ON,       lw=0, marker="o", markersize=6, label="3-box model"),
-        Line2D([0], [0], color=COL_BOUS,     lw=0, marker="D", markersize=6, label="Boussinesq"),
-        Line2D([0], [0], color=COL_CLIMBERX, lw=0, marker="s", markersize=6, label="CLIMBER-X"),
-        Line2D([0], [0], color=COL_PLASIM,   lw=0, marker="^", markersize=6, label="PlaSim"),
+        Line2D([0], [0], color=COL_ON,       lw=1.5, marker="",  markersize=6, label="3-box model"),
+        Line2D([0], [0], color=COL_BOUS,     lw=1.5, marker="",  markersize=6, label="Boussinesq"),
+        Line2D([0], [0], color=COL_CLIMBERX, lw=1.5, marker="",  markersize=6, label="CLIMBER-X"),
+        Line2D([0], [0], color=COL_PLASIM,   lw=0,   marker="^", markersize=6, label="PlaSim"),
     ]
     fig.legend(
         handles=legend_elements,
