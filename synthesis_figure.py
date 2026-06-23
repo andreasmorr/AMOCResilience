@@ -50,7 +50,7 @@ CLIMBERX_CSV   = UMBRELLA / "AMOCClimberX"  / "data" / "paper" / "resilience_vs_
 # Maximum parameter values; rows beyond these are excluded (None = no cutoff)
 BOX_MAX_CO2      = 500    # ppm
 BOX_MAX_GAMMA    = None
-BOUS_MAX_GAMMA   = 0.069
+BOUS_MAX_GAMMA   = 0.06
 BOUS_MAX_CO2     = None
 PLASIM_MAX_CO2   = None
 CLIMBERX_MAX_CO2 = None
@@ -271,7 +271,6 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
                 label="CLIMBER-X",
             )
 
-    ax.set_title(panel_title, fontsize=8)
     ax.set_ylabel(ylabel, fontsize=8)
     ax.tick_params(labelsize=7)
     if xlabel:
