@@ -300,7 +300,7 @@ def main() -> None:
     n_res_rows   = (n_res_panels + 1) // ncols  # 2
     nrows_total  = 1 + n_res_rows            # 3
 
-    fig = plt.figure(figsize=(FIGURE_WIDTH, 2.0 + 1.7 * n_res_rows),
+    fig = plt.figure(figsize=(FIGURE_WIDTH, 1.6 + 1.5 * n_res_rows),
                      constrained_layout=True)
     gs  = GridSpec(nrows_total, ncols, figure=fig,
                    height_ratios=[1.0] + [1.0] * n_res_rows)
@@ -313,7 +313,7 @@ def main() -> None:
         df_box, df_plasim, df_boussinesq, df_climberx,
         xlabel=False,
     )
-    ax_amoc.text(0.03, 0.97, "(a)",
+    ax_amoc.text(0.01, 0.97, "(a)",
                  transform=ax_amoc.transAxes,
                  fontsize=9, fontweight="bold", va="top", ha="left")
 
