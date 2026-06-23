@@ -68,6 +68,23 @@ BASIN_OFF_FILL = "#F7E1DD"   # pale red fill for off-basin (matches COL_OFF hue)
 
 TRAJ_COLORS = ["#1B7837", "#762A83", "#E08214", "#35978F"]  # green, purple, orange, teal
 
+# Synthesis figure: per-model line colors
+COL_BOUS     = "#7B3F00"   # brown  – Boussinesq
+COL_CLIMBERX = "#4D0099"   # purple – CLIMBER-X
+COL_PLASIM   = "#D95F02"   # orange – PlaSim
+
+# Common plot element styles
+LW_TRAJ          = 1.2    # time-series trajectory line width
+LW_TRAJ_PHASE    = 1.0    # phase-portrait trajectory line width
+LW_ATTRACTOR     = 1.8    # attractor circle/ellipse line width
+LS_ATTRACTOR     = "-"    # attractor circle line style
+ALPHA_ATTRACTOR  = 0.85   # attractor circle opacity
+LW_EQUIL         = 1.0    # equilibrium reference line width
+LS_EQUIL         = "--"   # equilibrium reference line style
+ALPHA_EQUIL      = 0.8    # equilibrium reference line opacity
+IC_EDGE_COLOR    = "white"
+IC_EDGE_LW       = 0.4    # IC start-marker edge line width
+
 # ---------------------------------------------------------------------------
 # Hard-coded panel size constants (all in inches)
 # ---------------------------------------------------------------------------

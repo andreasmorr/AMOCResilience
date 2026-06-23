@@ -37,7 +37,8 @@ sys.path.insert(0, str(UMBRELLA))
 
 from amoc_plot_style import (
     COL_ON, COL_OFF, COL_EDGE,
-    apply_style, savefig_pdf,
+    COL_BOUS, COL_CLIMBERX, COL_PLASIM,
+    apply_style, savefig_pdf, add_panel_label,
 )
 
 FIGURE_WIDTH = 7.0   # inches
@@ -182,10 +183,6 @@ def load_climberx() -> pd.DataFrame | None:
 # Main
 # ---------------------------------------------------------------------------
 
-COL_BOUS    = "#7B3F00"   # brown for Boussinesq
-COL_CLIMBERX = "#4D0099"  # purple for CLIMBER-X
-COL_PLASIM   = "#D95F02"  # orange for PlaSim
-
 
 def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
                 ylabel, panel_title, df_box, df_plasim, df_boussinesq, df_climberx,
@@ -313,9 +310,7 @@ def main() -> None:
         df_box, df_plasim, df_boussinesq, df_climberx,
         xlabel=False,
     )
-    ax_amoc.text(0.01, 0.97, "(a)",
-                 transform=ax_amoc.transAxes,
-                 fontsize=9, fontweight="bold", va="top", ha="left")
+    add_panel_label(ax_amoc, "(a)", x=0.01)
 
     # Resilience-measure panels – 2×2 grid with shared x-axes per column
     panel_labels = ["(b)", "(c)", "(d)", "(e)"]
@@ -340,9 +335,7 @@ def main() -> None:
         if not is_bottom_row:
             plt.setp(ax.get_xticklabels(), visible=False)
 
-        ax.text(0.03, 0.97, panel_labels[panel_idx],
-                transform=ax.transAxes,
-                fontsize=9, fontweight="bold", va="top", ha="left")
+        add_panel_label(ax, panel_labels[panel_idx])
 
     # Shared legend – placed below figure
     from matplotlib.lines import Line2D
