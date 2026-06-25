@@ -85,10 +85,10 @@ AMOC_PANEL = (
 # b+d share x-axis (left column); c+e share x-axis (right column).
 PANELS = [
     (
-        "characteristic_return_time",
-        "characteristic_return_time",
-        "characteristic_return_time",
-        "ellipse_long_axis_1sigma",
+        "local_resilience",
+        "local_resilience",
+        "local_resilience",
+        "local_resilience",
         "Local resilience",
         "Local resilience",
     ),
