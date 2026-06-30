@@ -62,14 +62,41 @@ from amoc_plot_style import apply_style, add_panel_label, savefig_pdf
 # ---------------------------------------------------------------------------
 LAT = np.arange(-87.5, 90.0, 5.0)          # (36,) cell centres, °N
 LON = np.arange(-177.5, 180.0, 5.0)        # (72,) cell centres, °E
-ZRO = np.array([5, 25, 75, 150, 250, 350, 450, 575, 700, 875, 1100, 1350,
-                1650, 2000, 2400, 2800, 3200, 3600, 4000, 4400, 4800, 5200,
-                5700], dtype=float)         # (23,) approximate depth-level centres (m)
+ZRO = np.array([5.25, 18.39, 39.41, 78.82, 131.36, 183.90, 236.45, 288.99,
+                367.81, 472.89, 577.98, 735.61, 945.79, 1182.23, 1444.95,
+                1707.67, 1970.39, 2364.47, 2889.90, 3415.34, 3940.78,
+                4466.21, 4991.65], dtype=float)   # (23,) CLIMBER-X layer-centre depths (m)
 
 # Grid edges for pcolormesh
 LAT_EDGES = np.concatenate([[LAT[0] - 2.5], 0.5 * (LAT[:-1] + LAT[1:]), [LAT[-1] + 2.5]])
 LON_EDGES = np.concatenate([[LON[0] - 2.5], 0.5 * (LON[:-1] + LON[1:]), [LON[-1] + 2.5]])
 ZRO_EDGES = np.concatenate([[0.0], ZRO])    # top edge of shallowest level = 0 m
+
+# ---------------------------------------------------------------------------
+# Atlantic ocean basin mask (basin_mask_5x5.nc), aligned to the 5° grid.
+# Used by the Atlantic-mask boxes box_na / box_trop (basin_mask == i_atlantic).
+# ---------------------------------------------------------------------------
+_I_ATLANTIC = 1   # CLIMBER-X climber_grid.f90: i_atlantic = 1
+
+def _load_atlantic_mask():
+    """Boolean (lat, lon) Atlantic-basin selection on the 5° LAT/LON grid."""
+    path = Path(__file__).resolve().parent / "basin_mask_5x5.nc"
+    if not path.exists():
+        print(f"WARNING: {path.name} not found — Atlantic-mask boxes will be empty.")
+        return np.zeros((len(LAT), len(LON)), dtype=bool)
+    import xarray as xr
+    with xr.open_dataset(path) as ds:
+        bm  = ds["basin_mask"].values
+        blat = ds["lat"].values
+        blon = ds["lon"].values
+    sel = bm == _I_ATLANTIC
+    if sel.shape == (len(LAT), len(LON)) and np.allclose(blat, LAT) and np.allclose(blon, LON):
+        return sel
+    j = np.array([int(np.argmin(np.abs(blat - v))) for v in LAT])
+    i = np.array([int(np.argmin(np.abs(((blon - v + 180) % 360) - 180))) for v in LON])
+    return sel[np.ix_(j, i)]
+
+ATL_MASK = _load_atlantic_mask()   # (lat, lon) bool
 
 # ---------------------------------------------------------------------------
 # Land geometry — loaded once at 10 m resolution for smooth clipping and
@@ -203,6 +230,20 @@ BOXES_SHALLOW = {
                   depth_max=150.0, color=BOX_COLOR_SOUTH, label="WOOD_SOUTH_SHALLOW"),
 }
 
+# Current-standard Atlantic-mask boxes (box_na / box_trop / box_south).
+# NA and Trop select the Atlantic basin mask (basin="atlantic") intersected with
+# a latitude band; the longitudinal edges are coastlines (no longitude limits).
+# All three use the top 4 ocean layers (0–105 m).  Latitude tests use the ±35°
+# grid borders so the boxes tile exactly (NA >35°N, Trop 35°S–35°N, South <35°S).
+BOXES_CLIMBERX = {
+    "NA":    dict(lat_min=35.0,  lat_max=90.0,  lon_min=-180.0, lon_max=180.0,
+                  depth_max=105.0, basin="atlantic", color=BOX_COLOR_NA,    label="box_na"),
+    "Trop":  dict(lat_min=-35.0, lat_max=35.0,  lon_min=-180.0, lon_max=180.0,
+                  depth_max=105.0, basin="atlantic", color=BOX_COLOR_TROP,  label="box_trop"),
+    "South": dict(lat_min=-90.0, lat_max=-35.0, lon_min=-180.0, lon_max=180.0,
+                  depth_max=105.0, basin=None,       color=BOX_COLOR_SOUTH, label="box_south"),
+}
+
 TAPER_MARGIN_CELLS  = 2
 TAPER_MARGIN_LAYERS = 2
 
@@ -256,13 +297,38 @@ def vert_taper(depth_max):
     return w
 
 
+def box_hmask(box):
+    """Horizontal (lat, lon) selection for a box, honouring an Atlantic basin mask."""
+    hm = horiz_mask(box["lat_min"], box["lat_max"], box["lon_min"], box["lon_max"])
+    if box.get("basin") == "atlantic":
+        hm = hm & ATL_MASK
+    return hm
+
+
+def lat_only_taper(box, hm):
+    """Latitudinal-only cosine taper (for basin boxes): constant across longitude."""
+    band = np.where((LAT >= box["lat_min"]) & (LAT <= box["lat_max"]))[0]
+    w = np.zeros(hm.shape, dtype=float)
+    if band.size == 0:
+        return w
+    bs = band[np.argsort(LAT[band])]          # south → north
+    n = bs.size
+    m = float(TAPER_MARGIN_CELLS)
+    for p, j in enumerate(bs):
+        d = min(p, n - 1 - p) + 1
+        w[j, :] = 1.0 if d >= m else 0.5 * (1.0 - np.cos(np.pi * d / m))
+    w[~hm] = 0.0
+    return w
+
+
 def make_3d_mask(box, taper=False):
-    hm   = horiz_mask(box["lat_min"], box["lat_max"], box["lon_min"], box["lon_max"])
+    hm   = box_hmask(box)
     vm   = vert_mask(box["depth_max"])
     full = vm[:, None, None] & hm[None, :, :]
     if not taper:
         return full.astype(float)
-    hw  = horiz_taper(hm)
+    # Basin boxes taper in latitude only (E/W edges are coastlines).
+    hw  = lat_only_taper(box, hm) if box.get("basin") else horiz_taper(hm)
     vw  = vert_taper(box["depth_max"])
     w3  = vw[:, None, None] * hw[None, :, :]
     w3[~full] = 0.0
@@ -699,14 +765,16 @@ def main():
     add_panel_label(ax, panel_labels_bot[1])
 
     # ── Column 3: CLIMBER-X ───────────────────────────────────────────────
+    # Atlantic-mask boxes box_na / box_trop / box_south (top 4 layers, 0–105 m);
+    # NA & Trop follow the Atlantic basin mask, tapered in latitude only.
     ax = axes_top[2]
     setup_globe(ax)
-    draw_boxes_on_globe(ax, BOXES_SHALLOW, taper=True)
+    draw_boxes_on_globe(ax, BOXES_CLIMBERX, taper=True)
     ax.set_title("CLIMBER-X model boxes", fontsize=8, fontweight="bold")
     add_panel_label(ax, panel_labels_top[2])
 
     ax = axes_bot[2]
-    draw_section(ax, BOXES_SHALLOW, taper=True, depth_max_plot=2000, label_depths=True)
+    draw_section(ax, BOXES_CLIMBERX, taper=True, depth_max_plot=300, label_depths=True)
     ax.set_ylabel("Depth (m)", fontsize=8)
     ax.set_title("Meridional section (28°W)", fontsize=8)
     add_panel_label(ax, panel_labels_bot[2])
