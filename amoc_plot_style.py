@@ -172,6 +172,8 @@ def add_panel_label(
     label: str,
     x: float = 0.03,
     y: float = 0.97,
+    va: str = "top",
+    ha: str = "left",
 ) -> None:
     """
     Add a panel label (e.g. '(a)') in axes-fraction coordinates.
@@ -181,14 +183,15 @@ def add_panel_label(
     ax : Axes
     label : str  e.g. '(a)', '(b)', …
     x, y : float  position in axes-fraction units (default: upper-left corner)
+    va, ha : str  vertical / horizontal text alignment (default: top-left)
     """
     ax.text(
         x, y, label,
         transform=ax.transAxes,
         fontsize=9,
         fontweight="bold",
-        va="top",
-        ha="left",
+        va=va,
+        ha=ha,
     )
 
 

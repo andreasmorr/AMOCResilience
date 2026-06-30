@@ -384,7 +384,6 @@ SECTION_LON = float(LON[SECTION_IDX])   # actual grid longitude used
 # Actual depth grid is tanh-stretched: z_j(j) = 0.5 + tanh(q*(j/N−0.5))/(2·tanh(q/2))
 # ---------------------------------------------------------------------------
 BOUS_M, BOUS_N   = 20, 40
-BOUS_SMOOTH_X    = 0.25                         # tanh half-width (model units)
 BOUS_XX          = np.linspace(0.0, 5.0, BOUS_M + 1)   # (21,) latitude coords
 
 # Actual tanh-stretched depth grid (q=3, same as Boussinesq_2DAMOC.py)
@@ -395,39 +394,38 @@ BOUS_Z_MODEL = 0.5 + np.tanh(_q * (_j / BOUS_N - 0.5)) / (2 * np.tanh(_q / 2))
 # For plotting: surface at top (0 m), so flip to z_plot = 1 - z_model
 BOUS_Z_PLOT  = 1.0 - BOUS_Z_MODEL   # 0=surface, 1=bottom (for plotting)
 
-# Actual depth weighting h(z) from the model: exp(-(1-z_model)/delta) = exp(-z_plot/delta)
-# delta = 0.05 (default in Boussinesq_2DAMOC.py)
-_BOUS_DELTA = 0.05
-_hz = np.exp(-BOUS_Z_PLOT / _BOUS_DELTA)
-_hz /= _hz.max()
-
-
-def bous_lat_mask(x_lo, x_hi):
-    """Smooth tanh meridional mask on BOUS_XX."""
-    return 0.5 * (np.tanh((BOUS_XX - x_lo) / BOUS_SMOOTH_X)
-                  - np.tanh((BOUS_XX - x_hi) / BOUS_SMOOTH_X))
-
-
-def bous_box_mask(x_lo, x_hi):
-    """2D box mask (lat × depth), shape (M+1, N+1), peak-normalised to 1."""
-    lm = bous_lat_mask(x_lo, x_hi)
-    mask = np.outer(lm, _hz)
-    if mask.max() > 0:
-        mask /= mask.max()
-    return mask
-
 
 # Geographic bounds of Boussinesq boxes (matching Boussinesq_box.py __main__)
-BOUS_NORTH_LO = 130.0 / 36.0   # ≈ 3.611  →  40°N
-BOUS_NORTH_HI = 5.0             #             90°N
-BOUS_TROP_LO  = 40.0  / 36.0   # ≈ 1.111  → −50°S
-BOUS_TROP_HI  = 130.0 / 36.0   # ≈ 3.611  →  40°N
-BOUS_SOUTH_LO = -1.0            #             (below domain → clamped to 90°S)
-BOUS_SOUTH_HI = 40.0  / 36.0   # ≈ 1.111  → −50°S
+# Latitudinal borders snapped to grid cell faces (midpoints between nodes).
+BOUS_NORTH_LO = 3.625           # +40.5°N  (cell face)
+BOUS_NORTH_HI = 5.0             #  90°N
+BOUS_TROP_LO  = 1.625           # −31.5°S  (cell face)
+BOUS_TROP_HI  = 3.625           # +40.5°N  (cell face)
+BOUS_SOUTH_LO = -1.0            #  (below domain → clamped to 90°S)
+BOUS_SOUTH_HI = 1.625           # −31.5°S  (cell face)
 
-BOUS_NORTH_MASK = bous_box_mask(BOUS_NORTH_LO, BOUS_NORTH_HI)   # (21, 41)
-BOUS_TROP_MASK  = bous_box_mask(BOUS_TROP_LO,  BOUS_TROP_HI)    # (21, 41)
-BOUS_SOUTH_MASK = bous_box_mask(BOUS_SOUTH_LO, BOUS_SOUTH_HI)   # (21, 41)
+# Vertical extent of the finite surface boxes (z-units), matching Boussinesq_box.py:
+# cells with z_model ≥ 1 − BOUS_BOX_DEPTH are inside the box.  0.06054 places the
+# box bottom on the grid cell face at ~121 m (BOUS_DEPTH_SCALE = 2000 m), so the
+# box reaches the ~106 m model level (cf. the CLIMBER-X 0–105 m boxes).
+BOUS_BOX_DEPTH = 0.06054
+
+# Build the actual model so the figure stays in sync with the perturbation logic
+# in AMOCBoussinesq/Boussinesq_box.py (finite membership + margin-only cosine
+# taper + interior boost so the box-mean of the field is 1).
+sys.path.insert(0, str(SCRIPT_DIR / "AMOCBoussinesq"))
+from Boussinesq_box import BoussinesqBox
+
+_bous_model = BoussinesqBox(BOUS_M, BOUS_N, 1e-3)
+_bous_model.make_salinity_forcing(0.1)
+_bous_model.register_box("north",    BOUS_NORTH_LO, BOUS_NORTH_HI, box_depth=BOUS_BOX_DEPTH)
+_bous_model.register_box("tropical", BOUS_TROP_LO,  BOUS_TROP_HI,  box_depth=BOUS_BOX_DEPTH)
+_bous_model.register_box("southern", BOUS_SOUTH_LO, BOUS_SOUTH_HI, box_depth=BOUS_BOX_DEPTH)
+
+# Tapered, interior-boosted perturbation fields, shape (M+1, N+1)
+BOUS_NORTH_PERT = _bous_model._box_pert["north"]
+BOUS_TROP_PERT  = _bous_model._box_pert["tropical"]
+BOUS_SOUTH_PERT = _bous_model._box_pert["southern"]
 
 # Convert Boussinesq x to degrees latitude for axis labels
 BOUS_LAT_DEG = BOUS_XX / 5.0 * 180.0 - 90.0    # (21,)
@@ -625,10 +623,16 @@ def box_legend(ax, box_dict, fontsize=7, loc="lower left"):
 # Cross-section helper: meridional section (lat × depth) using pcolormesh
 # ---------------------------------------------------------------------------
 
-def draw_section(ax, box_dict, taper=False, depth_max_plot=None, label_depths=True):
+def draw_section(ax, box_dict, taper=False, depth_max_plot=None, label_depths=True,
+                 box_limits=False, depth_lines=True, lat_lines=True):
     """
     Meridional cross-section at SECTION_LON.
     depth_max_plot: clip y-axis to this depth (m); None = full depth.
+    box_limits: if True, outline each box's finite extent (latitude range ×
+        surface→depth_max) as a dashed rectangle instead of loose edge lines.
+    depth_lines: if True, draw a horizontal dashed line at each box's depth_max
+        (the depth text label is controlled separately by label_depths).
+    lat_lines: if True, draw the vertical box-edge lines and the gray centre line.
     """
     from matplotlib.colors import LinearSegmentedColormap as LSC
     for key, box in box_dict.items():
@@ -641,28 +645,43 @@ def draw_section(ax, box_dict, taper=False, depth_max_plot=None, label_depths=Tr
         ax.pcolormesh(LAT_EDGES, ZRO_EDGES, w2,
                       cmap=cmap, vmin=0, vmax=1, shading="flat", zorder=2)
 
-    # Depth boundary lines
+    depth_lim = depth_max_plot if depth_max_plot is not None else float(ZRO[-1] + 300)
+
+    # Depth boundary labels
     if label_depths:
         for key, box in box_dict.items():
             dmax = box.get("depth_max")
             if dmax is not None:
-                ax.axhline(dmax, color=box["color"], linewidth=1.0,
-                           linestyle="--", alpha=0.7, zorder=5)
+                if depth_lines and not box_limits:
+                    ax.axhline(dmax, color=box["color"], linewidth=1.0,
+                               linestyle="--", alpha=0.7, zorder=5)
                 ax.text(87.0, dmax + 25, f"{int(dmax)} m",
                         fontsize=6.5, color=box["color"], ha="right", va="top")
 
-    # Latitude boundary lines
-    for key, box in box_dict.items():
-        for lat_edge in [box["lat_min"], box["lat_max"]]:
-            ax.axvline(lat_edge, color=box["color"], linewidth=0.8,
-                       linestyle=":", alpha=0.5, zorder=5)
+    if box_limits:
+        # Finite box limits as dashed rectangles: lat range × [surface, depth_max]
+        for key, box in box_dict.items():
+            dmax = box.get("depth_max")
+            depth_bottom = dmax if dmax is not None else depth_lim
+            lat_lo = max(box["lat_min"], -90.0)
+            lat_hi = min(box["lat_max"],  90.0)
+            ax.add_patch(mpatches.Rectangle(
+                (lat_lo, 0.0), lat_hi - lat_lo, depth_bottom,
+                fill=False, edgecolor=box["color"], linewidth=1.3,
+                linestyle="--", alpha=0.9, zorder=6))
+    elif lat_lines:
+        # Latitude boundary lines
+        for key, box in box_dict.items():
+            for lat_edge in [box["lat_min"], box["lat_max"]]:
+                ax.axvline(lat_edge, color=box["color"], linewidth=0.8,
+                           linestyle=":", alpha=0.5, zorder=5)
 
-    depth_lim = depth_max_plot if depth_max_plot is not None else float(ZRO[-1] + 300)
     ax.set_xlim(-90, 90)
     ax.set_ylim(depth_lim, 0)
     ax.set_facecolor("#f0f0f0")
     ax.set_xlabel("Latitude", fontsize=8)
-    ax.axvline(0, color="gray", linewidth=0.4, linestyle="--", alpha=0.5)
+    if lat_lines:
+        ax.axvline(0, color="gray", linewidth=0.4, linestyle="--", alpha=0.5)
 
     ticks = np.arange(-90, 91, 30)
     ax.set_xticks(ticks)
@@ -677,45 +696,58 @@ def draw_section(ax, box_dict, taper=False, depth_max_plot=None, label_depths=Tr
 
 BOUS_DEPTH_SCALE = 2000.0   # normalised depth 1 corresponds to this many metres
 
+def _bous_lat_deg(x):
+    """Boussinesq model latitude coord x ∈ [0, 5] → degrees north, clamped to domain."""
+    return np.clip(x, 0.0, 5.0) / 5.0 * 180.0 - 90.0
+
+
 def draw_boussinesq_panel(ax):
     """
-    pcolormesh plot of the Boussinesq box masks using the model's actual
-    tanh-stretched depth grid and h(z) weighting (delta=0.05).
-    Y-axis is in physical metres (z_plot × BOUS_DEPTH_SCALE) to match the
-    shared axis with the meridional section panels.
-    Colors match the other panels (BOX_COLOR_NA/TROP/SOUTH).
+    pcolormesh plot of the Boussinesq finite tapered perturbation fields using
+    the model's actual tanh-stretched depth grid.  Each box field is the
+    margin-only cosine taper with the interior boost (box-mean = 1), normalised
+    to its peak for display so the taper ramp is visible.  The finite box limits
+    (latitude range × surface→box-bottom depth) are drawn as dashed rectangles.
+    Y-axis is in physical metres (z_plot × BOUS_DEPTH_SCALE) to match the shared
+    axis with the meridional section panels.
     """
     from matplotlib.colors import LinearSegmentedColormap as LSC
 
     # Convert tanh-stretched z_plot to metres (0=surface, 1=bottom in plot)
     ZZ_m = BOUS_Z_PLOT * BOUS_DEPTH_SCALE   # (41,) in metres
 
-    mask_n = BOUS_NORTH_MASK.T   # (N+1, M+1)
-    mask_t = BOUS_TROP_MASK.T
-    mask_s = BOUS_SOUTH_MASK.T
+    pert_n = BOUS_NORTH_PERT.T   # (N+1, M+1)
+    pert_t = BOUS_TROP_PERT.T
+    pert_s = BOUS_SOUTH_PERT.T
 
-    for mask, color, zorder in [
-        (mask_s, BOX_COLOR_SOUTH, 2),
-        (mask_t, BOX_COLOR_TROP,  3),
-        (mask_n, BOX_COLOR_NA,    4),
+    for pert, color, zorder in [
+        (pert_s, BOX_COLOR_SOUTH, 2),
+        (pert_t, BOX_COLOR_TROP,  3),
+        (pert_n, BOX_COLOR_NA,    4),
     ]:
+        disp = pert / pert.max() if pert.max() > 0 else pert   # normalise for display
         rgba = np.array(mcolors.to_rgba(color))
         cmap = LSC.from_list("", [(rgba[0], rgba[1], rgba[2], 0.0),
                                    (*rgba[:3], 0.95)], N=256)
-        # Use vertex coords as edges; cell data = upper-left vertex value (flat shading)
-        ax.pcolormesh(BOUS_LAT_DEG, ZZ_m, mask[:-1, :-1],
+        # Node coords are cell *centres*: shading="nearest" puts cell boundaries
+        # on the midpoints (the grid cell faces), so the painted cells line up
+        # exactly with the face-aligned box-limit rectangles drawn below.
+        ax.pcolormesh(BOUS_LAT_DEG, ZZ_m, disp,
                       cmap=cmap, vmin=0, vmax=1,
-                      shading="flat", zorder=zorder)
+                      shading="nearest", zorder=zorder)
 
-    # Latitude boundary lines
-    for x_edge, col in [
-        (BOUS_SOUTH_HI / 5.0 * 180 - 90, BOX_COLOR_SOUTH),
-        (BOUS_TROP_LO  / 5.0 * 180 - 90, BOX_COLOR_TROP),
-        (BOUS_TROP_HI  / 5.0 * 180 - 90, BOX_COLOR_TROP),
-        (BOUS_NORTH_LO / 5.0 * 180 - 90, BOX_COLOR_NA),
-        (BOUS_NORTH_HI / 5.0 * 180 - 90, BOX_COLOR_NA),
+    # Finite box limits: latitude range × [surface, box bottom] as dashed rectangles
+    box_bottom_m = BOUS_BOX_DEPTH * BOUS_DEPTH_SCALE
+    for (x_lo, x_hi), col in [
+        ((BOUS_NORTH_LO, BOUS_NORTH_HI), BOX_COLOR_NA),
+        ((BOUS_TROP_LO,  BOUS_TROP_HI),  BOX_COLOR_TROP),
+        ((BOUS_SOUTH_LO, BOUS_SOUTH_HI), BOX_COLOR_SOUTH),
     ]:
-        ax.axvline(x_edge, color=col, linewidth=1.0, linestyle=":", alpha=0.7, zorder=6)
+        lat_lo, lat_hi = _bous_lat_deg(x_lo), _bous_lat_deg(x_hi)
+        ax.add_patch(mpatches.Rectangle(
+            (lat_lo, 0.0), lat_hi - lat_lo, box_bottom_m,
+            fill=False, edgecolor=col, linewidth=1.3, linestyle="--",
+            alpha=0.9, zorder=6))
 
     ax.set_facecolor("#f0f0f0")
     ax.set_xlim(-90, 90)
@@ -731,8 +763,9 @@ def draw_boussinesq_panel(ax):
 
     ax.axvline(0, color="gray", linewidth=0.4, linestyle="--", alpha=0.5)
 
-    # Annotation: normalised depth scale and weighting
-    ax.text(0.98, 0.02, f"norm. depth 1 ≡ {int(BOUS_DEPTH_SCALE)} m  |  δ = {_BOUS_DELTA}",
+    # Annotation: normalised depth scale and finite box depth
+    ax.text(0.98, 0.02,
+            f"norm. depth 1 ≡ {int(BOUS_DEPTH_SCALE)} m  |  box depth = {BOUS_BOX_DEPTH}",
             transform=ax.transAxes, fontsize=6.5, ha="right", va="bottom",
             color="#444444", style="italic",
             bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.7, ec="none"))
@@ -796,10 +829,11 @@ def main():
     add_panel_label(ax, panel_labels_top[0])
 
     ax = axes_bot[0]
-    draw_section(ax, BOXES, taper=False, depth_max_plot=2000, label_depths=True)
+    draw_section(ax, BOXES, taper=False, depth_max_plot=2000, label_depths=False,
+                 depth_lines=False, lat_lines=False)
     ax.set_ylabel("Depth (m)", fontsize=8)
     ax.set_title("Meridional section (28°W)", fontsize=8)
-    add_panel_label(ax, panel_labels_bot[0])
+    add_panel_label(ax, panel_labels_bot[0], y=0.04, va="bottom")
 
     # ── Column 2: Boussinesq context ──────────────────────────────────────
     ax = axes_top[1]
@@ -811,8 +845,8 @@ def main():
 
     ax = axes_bot[1]
     draw_boussinesq_panel(ax)
-    ax.set_title("Boussinesq 2D box weighting", fontsize=8)
-    add_panel_label(ax, panel_labels_bot[1])
+    ax.set_title("Boussinesq 2D tapered perturbation", fontsize=8)
+    add_panel_label(ax, panel_labels_bot[1], y=0.04, va="bottom")
 
     # ── Column 3: CLIMBER-X ───────────────────────────────────────────────
     # Atlantic-mask boxes box_na / box_trop / box_south (top 4 layers, 0–105 m);
@@ -824,10 +858,11 @@ def main():
     add_panel_label(ax, panel_labels_top[2])
 
     ax = axes_bot[2]
-    draw_section(ax, BOXES_CLIMBERX, taper=True, depth_max_plot=300, label_depths=True)
+    draw_section(ax, BOXES_CLIMBERX, taper=True, depth_max_plot=300, label_depths=True,
+                 box_limits=True)
     ax.set_ylabel("Depth (m)", fontsize=8)
     ax.set_title("Meridional section (28°W)", fontsize=8)
-    add_panel_label(ax, panel_labels_bot[2])
+    add_panel_label(ax, panel_labels_bot[2], y=0.04, va="bottom")
 
     # ── Column 4: PlaSim ──────────────────────────────────────────────────
     ax = axes_top[3]
@@ -844,7 +879,7 @@ def main():
     ax.set_title("Meridional EOF section", fontsize=8)
     ax.set_xlabel("Latitude", fontsize=8)
     ax.set_ylabel("Depth (m)", fontsize=8)
-    add_panel_label(ax, panel_labels_bot[3])
+    add_panel_label(ax, panel_labels_bot[3], y=0.04, va="bottom")
 
     # ── Shared y-axis for bottom panels e, f, g (depth 0–2000 m) ──────────
     for ax in axes_bot[:3]:
