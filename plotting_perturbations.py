@@ -163,6 +163,38 @@ def _build_fine_ocean_mask():
 print("Building fine ocean mask (0.5°) for globe panels …")
 FINE_OCEAN_MASK = _build_fine_ocean_mask()   # (360, 720) bool
 
+
+def _build_fine_atlantic_mask():
+    """Atlantic-basin selection on the fine grid.
+
+    The basin mask is only defined on the coarse 5° grid, so we upsample it to
+    the fine grid by nearest-neighbour lookup and then intersect with the fine
+    ocean mask.  Coastal edges (Americas, Africa/Europe) therefore follow the
+    smooth high-resolution coastline, while the open-ocean basin boundaries
+    (Arctic / Southern Ocean / Indian Ocean) inherit the 5° basin partition."""
+    j = np.array([int(np.argmin(np.abs(LAT - v))) for v in _FINE_LAT])
+    i = np.array([int(np.argmin(np.abs(((LON - v + 180) % 360) - 180)))
+                  for v in _FINE_LON])
+    atl_fine = ATL_MASK[np.ix_(j, i)]
+    return atl_fine & FINE_OCEAN_MASK
+
+FINE_ATL_MASK = _build_fine_atlantic_mask()   # (360, 720) bool
+
+# Southern edge of the Atlantic basin mask (cell boundary, °N).  South of this
+# the basin mask is empty (open South Atlantic merging into the Southern Ocean),
+# so basin boxes that extend further south fall back to the longitude rectangle.
+_atl_rows = np.where(ATL_MASK.any(axis=1))[0]
+ATL_SOUTH_EDGE = float(LAT[_atl_rows.min()] - 2.5) if _atl_rows.size else -90.0
+# Longitudinal span of the Atlantic at its southernmost row — used to clamp the
+# south-of-basin extension so it stays in the South Atlantic (east of South
+# America) and does not leak into the Pacific west of Chile.
+if _atl_rows.size:
+    _south_lons = LON[ATL_MASK[_atl_rows.min()]]
+    ATL_SOUTH_LON_MIN = float(_south_lons.min() - 2.5)
+    ATL_SOUTH_LON_MAX = float(_south_lons.max() + 2.5)
+else:
+    ATL_SOUTH_LON_MIN, ATL_SOUTH_LON_MAX = -180.0, 180.0
+
 # ---------------------------------------------------------------------------
 # Wood-box definitions  (full/deep variants and shallow variants)
 # ---------------------------------------------------------------------------
@@ -182,9 +214,15 @@ BOXES = {
 # Globe panels a and b: all three boxes with gaps closed.
 #   Tropical: lat_max extended 32.5°N → 37.5°N (closes gap with NA)
 #   South:    lat_max extended -52.5°S → -47.5°S (closes gap with Tropical)
+# The NA and Tropical boxes follow the Atlantic basin mask so their E/W extent
+# stretches to the coasts of the Americas and Africa/Europe (like CLIMBER-X);
+# their longitude bounds are widened so the coastlines, not the rectangle,
+# define the extent.  Latitude borders are unchanged.
 BOXES_GLOBE = {
-    "NA":    BOXES["NA"],
-    "Trop":  {**BOXES["Trop"], "lat_max": 37.5},
+    "NA":    {**BOXES["NA"],   "lon_min": -100.0, "lon_max": 25.0,
+              "basin": "atlantic"},
+    "Trop":  {**BOXES["Trop"], "lat_max": 37.5, "lon_min": -100.0,
+              "lon_max": 25.0, "basin": "atlantic"},
     "South": {**BOXES["South"], "lat_max": -47.5},
 }
 
@@ -495,7 +533,19 @@ def draw_boxes_fine_grid(ax, box_dict):
             lon_ok = (lon_norm >= lo_min) & (lon_norm <= lo_max)
         else:
             lon_ok = (lon_norm >= lo_min) | (lon_norm <= lo_max)
-        w2 = (lat_ok[:, None] & lon_ok[None, :] & FINE_OCEAN_MASK).astype(float)
+        sel = lat_ok[:, None] & lon_ok[None, :] & FINE_OCEAN_MASK
+        if box.get("basin") == "atlantic":
+            # Stretch the box longitudinally to the basin coastlines instead of
+            # the nominal lon_min/lon_max rectangle.  South of the basin mask's
+            # extent (open South Atlantic) the basin mask is empty, so there we
+            # keep the longitude-rectangle fill so the box still reaches its
+            # southern latitude bound (where the Southern box begins).  The
+            # extension is clamped to the Atlantic's longitudinal span at its
+            # southern edge so it does not leak into the Pacific west of Chile.
+            ext_lon_ok = (lon_norm >= ATL_SOUTH_LON_MIN) & (lon_norm <= ATL_SOUTH_LON_MAX)
+            south_ext = (_FINE_LAT < ATL_SOUTH_EDGE)[:, None] & ext_lon_ok[None, :]
+            sel = sel & (FINE_ATL_MASK | south_ext)
+        w2 = sel.astype(float)
         rgba = np.array(mcolors.to_rgba(box["color"]))
         cmap = LinearSegmentedColormap.from_list(
             "", [(rgba[0], rgba[1], rgba[2], 0.0), (*rgba[:3], 0.65)], N=2
