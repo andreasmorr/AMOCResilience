@@ -405,10 +405,10 @@ BOUS_SOUTH_LO = -1.0            #  (below domain → clamped to 90°S)
 BOUS_SOUTH_HI = 1.625           # −31.5°S  (cell face)
 
 # Vertical extent of the finite surface boxes (z-units), matching Boussinesq_box.py:
-# cells with z_model ≥ 1 − BOUS_BOX_DEPTH are inside the box.  0.39776 places the
-# box bottom on the grid cell face at ~398 m (BOUS_DEPTH_SCALE = 1000 m),
-# so the box reaches the ~378 m model level (top 18 levels).
-BOUS_BOX_DEPTH = 0.39776
+# cells with z_model ≥ 1 − BOUS_BOX_DEPTH are inside the box.  0.28449 places the
+# box bottom on the grid cell face at ~284 m (BOUS_DEPTH_SCALE = 1000 m),
+# so the box reaches the ~267 m model level (top 15 levels).
+BOUS_BOX_DEPTH = 0.28449
 
 # Build the actual model so the figure stays in sync with the perturbation logic
 # in AMOCBoussinesq/Boussinesq_box.py (finite membership + margin-only cosine
