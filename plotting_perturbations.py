@@ -405,10 +405,10 @@ BOUS_SOUTH_LO = -1.0            #  (below domain → clamped to 90°S)
 BOUS_SOUTH_HI = 1.625           # −31.5°S  (cell face)
 
 # Vertical extent of the finite surface boxes (z-units), matching Boussinesq_box.py:
-# cells with z_model ≥ 1 − BOUS_BOX_DEPTH are inside the box.  0.06054 places the
-# box bottom on the grid cell face at ~121 m (BOUS_DEPTH_SCALE = 2000 m), so the
-# box reaches the ~106 m model level (cf. the CLIMBER-X 0–105 m boxes).
-BOUS_BOX_DEPTH = 0.06054
+# cells with z_model ≥ 1 − BOUS_BOX_DEPTH are inside the box.  0.39776 places the
+# box bottom on the grid cell face at ~398 m (BOUS_DEPTH_SCALE = 1000 m),
+# so the box reaches the ~378 m model level (top 18 levels).
+BOUS_BOX_DEPTH = 0.39776
 
 # Build the actual model so the figure stays in sync with the perturbation logic
 # in AMOCBoussinesq/Boussinesq_box.py (finite membership + margin-only cosine
@@ -694,7 +694,7 @@ def draw_section(ax, box_dict, taper=False, depth_max_plot=None, label_depths=Tr
 # Boussinesq 2D panel
 # ---------------------------------------------------------------------------
 
-BOUS_DEPTH_SCALE = 2000.0   # normalised depth 1 corresponds to this many metres
+BOUS_DEPTH_SCALE = 1000.0   # normalised depth 1 corresponds to this many metres
 
 def _bous_lat_deg(x):
     """Boussinesq model latitude coord x ∈ [0, 5] → degrees north, clamped to domain."""
@@ -751,7 +751,7 @@ def draw_boussinesq_panel(ax):
 
     ax.set_facecolor("#f0f0f0")
     ax.set_xlim(-90, 90)
-    # ylim set externally to match shared axis (2000 m); depth increases downward
+    # ylim set externally to match shared axis (1000 m); depth increases downward
     ax.set_xlabel("Latitude", fontsize=8)
     ax.set_ylabel("Depth (m)", fontsize=8)
 
@@ -762,13 +762,6 @@ def draw_boussinesq_panel(ax):
     )
 
     ax.axvline(0, color="gray", linewidth=0.4, linestyle="--", alpha=0.5)
-
-    # Annotation: normalised depth scale and finite box depth
-    ax.text(0.98, 0.02,
-            f"norm. depth 1 ≡ {int(BOUS_DEPTH_SCALE)} m  |  box depth = {BOUS_BOX_DEPTH}",
-            transform=ax.transAxes, fontsize=6.5, ha="right", va="bottom",
-            color="#444444", style="italic",
-            bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.7, ec="none"))
 
 
 # ---------------------------------------------------------------------------
@@ -881,12 +874,14 @@ def main():
     ax.set_ylabel("Depth (m)", fontsize=8)
     add_panel_label(ax, panel_labels_bot[3], y=0.04, va="bottom")
 
-    # ── Shared y-axis for bottom panels e, f, g (depth 0–2000 m) ──────────
+    # ── Shared y-axis for bottom panels e, f, g (depth 0–1000 m) ──────────
     for ax in axes_bot[:3]:
-        ax.set_ylim(1200, 0)
-    # Only leftmost panel (e) keeps ylabel; f and g suppress it
-    axes_bot[1].set_ylabel("")
-    axes_bot[2].set_ylabel("")
+        ax.set_ylim(1000, 0)
+    # Only the leftmost panel (e) keeps the y-axis label and tick labels;
+    # f, g, h suppress both.
+    for ax in axes_bot[1:]:
+        ax.set_ylabel("")
+        ax.tick_params(labelleft=False)
 
     # ── Central legend between the two rows ───────────────────────────────
     legend_handles = [
