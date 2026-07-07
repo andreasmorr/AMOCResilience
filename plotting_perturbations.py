@@ -238,24 +238,27 @@ BOXES_ATLANTIC = {
 # cross-section through the Atlantic.
 _SECTION_LON_CTR = -28.0   # centre of the strip (°E)
 _BAND_WIDTH = 5.0           # degrees longitude
+# Latitude borders match the Boussinesq model boxes (x/5·180−90): the
+# north/tropical border is at +40.5°N and the tropical/southern border at
+# −31.5°S (the grid cell faces nearest the +40°N / −34°S targets).
 BOXES_BOUS_NARROW = {
     "NA": dict(
-        lat_min=37.5, lat_max=90.0,
+        lat_min=40.5, lat_max=90.0,
         lon_min=_SECTION_LON_CTR - _BAND_WIDTH / 2,
         lon_max=_SECTION_LON_CTR + _BAND_WIDTH / 2,
-        depth_max=None, color=BOX_COLOR_NA, label="WOOD_NA",
+        depth_max=None, color=BOX_COLOR_NA, label="N. Atlantic",
     ),
     "Trop": dict(
-        lat_min=-47.5, lat_max=37.5,
+        lat_min=-31.5, lat_max=40.5,
         lon_min=_SECTION_LON_CTR - _BAND_WIDTH / 2,
         lon_max=_SECTION_LON_CTR + _BAND_WIDTH / 2,
-        depth_max=875.0, color=BOX_COLOR_TROP, label="WOOD_TROP",
+        depth_max=875.0, color=BOX_COLOR_TROP, label="Tropical",
     ),
     "South": dict(
-        lat_min=-90.0, lat_max=-47.5,
+        lat_min=-90.0, lat_max=-31.5,
         lon_min=_SECTION_LON_CTR - _BAND_WIDTH / 2,
         lon_max=_SECTION_LON_CTR + _BAND_WIDTH / 2,
-        depth_max=450.0, color=BOX_COLOR_SOUTH, label="WOOD_SOUTH",
+        depth_max=450.0, color=BOX_COLOR_SOUTH, label="Southern",
     ),
 }
 
@@ -271,10 +274,10 @@ BOXES_SHALLOW = {
 # Current-standard Atlantic-mask boxes (box_na / box_trop / box_south).
 # NA and Trop select the Atlantic basin mask (basin="atlantic") intersected with
 # a latitude band; the longitudinal edges are coastlines (no longitude limits).
-# All three use the top 4 ocean layers (0–105 m).  Latitude tests use the ±35°
-# grid borders so the boxes tile exactly (NA >35°N, Trop 35°S–35°N, South <35°S).
+# All three use the top 4 ocean layers (0–105 m).  Latitude tests use grid
+# borders so the boxes tile exactly (NA 35°N–80°N, Trop 35°S–35°N, South <35°S).
 BOXES_CLIMBERX = {
-    "NA":    dict(lat_min=35.0,  lat_max=90.0,  lon_min=-180.0, lon_max=180.0,
+    "NA":    dict(lat_min=35.0,  lat_max=80.0,  lon_min=-180.0, lon_max=180.0,
                   depth_max=105.0, basin="atlantic", color=BOX_COLOR_NA,    label="box_na"),
     "Trop":  dict(lat_min=-35.0, lat_max=35.0,  lon_min=-180.0, lon_max=180.0,
                   depth_max=105.0, basin="atlantic", color=BOX_COLOR_TROP,  label="box_trop"),
