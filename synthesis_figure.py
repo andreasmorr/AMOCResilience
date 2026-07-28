@@ -44,7 +44,7 @@ from amoc_plot_style import (
 FIGURE_WIDTH = 7.0   # inches
 
 BOX_CSV        = UMBRELLA / "AMOCBox"        / "data" / "paper" / "resilience_vs_co2_boxmodel.csv"
-PLASIM_CSV     = UMBRELLA / "AMOCPlaSim"    / "data" / "plasim" / "resilience_metrics.csv"
+PLASIM_CSV     = UMBRELLA / "AMOCPlaSim"    / "data" / "plasim" / "resilience_metrics_boxsalt.csv"
 BOUSSINESQ_CSV = UMBRELLA / "AMOCBoussinesq" / "data" / "paper" / "resilience_vs_gamma_boussinesq.csv"
 CLIMBERX_CSV   = UMBRELLA / "AMOCClimberX"  / "data" / "paper" / "resilience_vs_co2_climberx.csv"
 

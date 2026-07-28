@@ -785,6 +785,132 @@ def draw_eof_placeholder(ax, title_text="", globe=True):
 
 
 # ---------------------------------------------------------------------------
+# PlaSim ocean grid  (2.5° zonal grid, 22 depth levels) and box footprints.
+# The CLIMBER-X boxes (BOXES_CLIMBERX) are re-created on the PlaSim grid as
+# closely as the different cell boundaries allow.  No tapering.
+#
+#   Latitude:  PlaSim cell centres at ±88.75° in 2.5° steps → cell faces on
+#              every 2.5° line.  The CLIMBER-X box borders (35°N, 80°N, 35°S)
+#              are multiples of 5° and therefore sit exactly on PlaSim faces,
+#              so the boxes tile the same latitude bands with no gaps/overlap.
+#   Depth:     CLIMBER-X box bottom is 105 m (top 4 layers).  The closest
+#              PlaSim cell face is 100 m (top 2 layers: centres 25 m, 75 m),
+#              which is used as the PlaSim box bottom.
+# ---------------------------------------------------------------------------
+PLASIM_LAT   = np.arange(-88.75, 90.0, 2.5)    # (72,) cell centres, °N
+PLASIM_LON   = np.arange(-178.75, 180.0, 2.5)  # (144,) cell centres, °E
+PLASIM_DEPTH = np.array([25., 75., 125., 175., 225., 275., 350., 450., 550.,
+                         650., 750., 850., 950., 1100., 1300., 1500., 1800.,
+                         2250., 2750., 3500., 4500., 5500.])   # (22,) layer centres (m)
+
+PLASIM_LAT_EDGES = np.concatenate(
+    [[PLASIM_LAT[0] - 1.25], 0.5 * (PLASIM_LAT[:-1] + PLASIM_LAT[1:]), [PLASIM_LAT[-1] + 1.25]])
+PLASIM_LON_EDGES = np.concatenate(
+    [[PLASIM_LON[0] - 1.25], 0.5 * (PLASIM_LON[:-1] + PLASIM_LON[1:]), [PLASIM_LON[-1] + 1.25]])
+# Physical layer faces: top at 0 m, interior faces at layer-centre midpoints.
+PLASIM_DEPTH_EDGES = np.concatenate(
+    [[0.0], 0.5 * (PLASIM_DEPTH[:-1] + PLASIM_DEPTH[1:]),
+     [PLASIM_DEPTH[-1] + 0.5 * (PLASIM_DEPTH[-1] - PLASIM_DEPTH[-2])]])
+
+PLASIM_BOX_DEPTH = 100.0   # top 2 PlaSim layers ≈ CLIMBER-X 0–105 m
+
+BOXES_PLASIM = {
+    "NA":    dict(lat_min=35.0,  lat_max=80.0,  depth_max=PLASIM_BOX_DEPTH,
+                  basin="atlantic", color=BOX_COLOR_NA,    label="box_na"),
+    "Trop":  dict(lat_min=-35.0, lat_max=35.0,  depth_max=PLASIM_BOX_DEPTH,
+                  basin="atlantic", color=BOX_COLOR_TROP,  label="box_trop"),
+    "South": dict(lat_min=-90.0, lat_max=-35.0, depth_max=PLASIM_BOX_DEPTH,
+                  basin=None,       color=BOX_COLOR_SOUTH, label="box_south"),
+}
+
+
+def _build_plasim_ocean_mask():
+    """Boolean (lat, lon) ocean selection on the PlaSim 2.5° grid."""
+    lon2d, lat2d = np.meshgrid(PLASIM_LON, PLASIM_LAT)
+    try:
+        from shapely.vectorized import contains as _vc
+        is_land = _vc(LAND_UNION, lon2d.ravel(), lat2d.ravel())
+    except Exception as exc:
+        print(f"  [warning] PlaSim ocean mask unavailable ({exc})")
+        return np.ones(lon2d.shape, dtype=bool)
+    return (~is_land).reshape(lon2d.shape)
+
+
+def _build_plasim_atlantic_mask():
+    """Atlantic-basin selection on the PlaSim grid: nearest-neighbour upsample of
+    the coarse 5° basin mask, intersected with the PlaSim ocean mask."""
+    j = np.array([int(np.argmin(np.abs(LAT - v))) for v in PLASIM_LAT])
+    i = np.array([int(np.argmin(np.abs(((LON - v + 180) % 360) - 180))) for v in PLASIM_LON])
+    return ATL_MASK[np.ix_(j, i)] & PLASIM_OCEAN_MASK
+
+
+print("Building PlaSim ocean / Atlantic masks (2.5°) …")
+PLASIM_OCEAN_MASK = _build_plasim_ocean_mask()      # (72, 144) bool
+PLASIM_ATL_MASK   = _build_plasim_atlantic_mask()   # (72, 144) bool
+
+
+def _plasim_box_hmask(box):
+    """Horizontal (lat, lon) footprint of a PlaSim box on the 2.5° grid."""
+    lat_ok = (PLASIM_LAT >= box["lat_min"]) & (PLASIM_LAT <= box["lat_max"])
+    hm = lat_ok[:, None] & PLASIM_OCEAN_MASK
+    if box.get("basin") == "atlantic":
+        hm = hm & PLASIM_ATL_MASK
+    return hm
+
+
+def draw_plasim_boxes_globe(ax, box_dict):
+    """Solid box footprints on the globe using the PlaSim 2.5° grid (no taper)."""
+    for key, box in box_dict.items():
+        w2 = _plasim_box_hmask(box).astype(float)
+        rgba = np.array(mcolors.to_rgba(box["color"]))
+        cmap = LinearSegmentedColormap.from_list(
+            "", [(rgba[0], rgba[1], rgba[2], 0.0), (*rgba[:3], 0.65)], N=2)
+        kw = dict(cmap=cmap, vmin=0, vmax=1, shading="flat", zorder=3)
+        if HAS_CARTOPY:
+            ax.pcolormesh(PLASIM_LON_EDGES, PLASIM_LAT_EDGES, w2,
+                          transform=_PC_TRANSFORM, **kw)
+        else:
+            ax.pcolormesh(PLASIM_LON_EDGES, PLASIM_LAT_EDGES, w2, **kw)
+
+
+def draw_plasim_section(ax, box_dict, depth_max_plot=1000.0):
+    """Zonally-averaged meridional section (lat × depth) of the PlaSim boxes.
+    Each box fills its latitude band down to its depth_max on the PlaSim depth
+    grid; finite box limits are outlined as dashed rectangles."""
+    from matplotlib.colors import LinearSegmentedColormap as LSC
+    for key, box in box_dict.items():
+        lat_ok = (PLASIM_LAT >= box["lat_min"]) & (PLASIM_LAT <= box["lat_max"])
+        dep_ok = PLASIM_DEPTH <= box["depth_max"]
+        w2 = (dep_ok[:, None] & lat_ok[None, :]).astype(float)   # (depth, lat)
+        if w2.max() == 0:
+            continue
+        rgba = np.array(mcolors.to_rgba(box["color"]))
+        cmap = LSC.from_list(key, [(1, 1, 1, 0), rgba], N=256)
+        ax.pcolormesh(PLASIM_LAT_EDGES, PLASIM_DEPTH_EDGES, w2,
+                      cmap=cmap, vmin=0, vmax=1, shading="flat", zorder=2)
+
+    for key, box in box_dict.items():
+        dmax   = box["depth_max"]
+        lat_lo = max(box["lat_min"], -90.0)
+        lat_hi = min(box["lat_max"],  90.0)
+        ax.add_patch(mpatches.Rectangle(
+            (lat_lo, 0.0), lat_hi - lat_lo, dmax,
+            fill=False, edgecolor=box["color"], linewidth=1.3,
+            linestyle="--", alpha=0.9, zorder=6))
+    ax.text(87.0, PLASIM_BOX_DEPTH + 25, f"{int(PLASIM_BOX_DEPTH)} m",
+            fontsize=6.5, color="#444444", ha="right", va="top")
+
+    ax.set_xlim(-90, 90)
+    ax.set_ylim(depth_max_plot, 0)
+    ax.set_facecolor("#f0f0f0")
+    ax.axvline(0, color="gray", linewidth=0.4, linestyle="--", alpha=0.5)
+    ticks = np.arange(-90, 91, 30)
+    ax.set_xticks(ticks)
+    ax.set_xticklabels(
+        [f"{abs(t)}°{'N' if t >= 0 else 'S'}" for t in ticks], fontsize=6.5)
+
+
+# ---------------------------------------------------------------------------
 # Main figure assembly
 # ---------------------------------------------------------------------------
 
@@ -861,20 +987,18 @@ def main():
     add_panel_label(ax, panel_labels_bot[2], y=0.04, va="bottom")
 
     # ── Column 4: PlaSim ──────────────────────────────────────────────────
+    # CLIMBER-X boxes re-created on the PlaSim 2.5° / 22-level grid (no taper):
+    # NA & Trop follow the Atlantic basin, South is global; box bottom 0–100 m.
     ax = axes_top[3]
-    if HAS_CARTOPY:
-        setup_globe(ax)
-        draw_eof_placeholder(ax, "EOF weighting\n(data to be provided)", globe=True)
-    else:
-        draw_eof_placeholder(ax, "EOF weighting\n(data to be provided)", globe=False)
+    setup_globe(ax)
+    draw_plasim_boxes_globe(ax, BOXES_PLASIM)
     ax.set_title("PlaSim model boxes", fontsize=8, fontweight="bold")
     add_panel_label(ax, panel_labels_top[3])
 
     ax = axes_bot[3]
-    draw_eof_placeholder(ax, "EOF cross-section\n(data to be provided)", globe=False)
-    ax.set_title("Meridional EOF section", fontsize=8)
+    draw_plasim_section(ax, BOXES_PLASIM, depth_max_plot=1000)
+    ax.set_title("Meridional section (zonal mean)", fontsize=8)
     ax.set_xlabel("Latitude", fontsize=8)
-    ax.set_ylabel("Depth (m)", fontsize=8)
     add_panel_label(ax, panel_labels_bot[3], y=0.04, va="bottom")
 
     # ── Shared y-axis for bottom panels e, f, g (depth 0–1000 m) ──────────
