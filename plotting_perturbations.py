@@ -812,14 +812,21 @@ PLASIM_DEPTH_EDGES = np.concatenate(
     [[0.0], 0.5 * (PLASIM_DEPTH[:-1] + PLASIM_DEPTH[1:]),
      [PLASIM_DEPTH[-1] + 0.5 * (PLASIM_DEPTH[-1] - PLASIM_DEPTH[-2])]])
 
-PLASIM_BOX_DEPTH = 100.0   # top 2 PlaSim layers ≈ CLIMBER-X 0–105 m
+# Deep box configuration (default in the PlaSim analysis pipeline,
+# scripts/compute_box_salinity.py: salt_na_deep / salt_trop_deep / salt_south):
+#   North Atlantic  0–1000 m  (top 13 layers; bottom cell edge 1025 m)
+#   Tropical        0–500 m   (top 8 layers; 500 m cell edge)
+#   Southern        0–100 m   (unchanged; no Atlantic data at any depth)
+PLASIM_NA_DEPTH    = 1000.0
+PLASIM_TROP_DEPTH  = 500.0
+PLASIM_SOUTH_DEPTH = 100.0
 
 BOXES_PLASIM = {
-    "NA":    dict(lat_min=35.0,  lat_max=80.0,  depth_max=PLASIM_BOX_DEPTH,
-                  basin="atlantic", color=BOX_COLOR_NA,    label="box_na"),
-    "Trop":  dict(lat_min=-35.0, lat_max=35.0,  depth_max=PLASIM_BOX_DEPTH,
-                  basin="atlantic", color=BOX_COLOR_TROP,  label="box_trop"),
-    "South": dict(lat_min=-90.0, lat_max=-35.0, depth_max=PLASIM_BOX_DEPTH,
+    "NA":    dict(lat_min=35.0,  lat_max=80.0,  depth_max=PLASIM_NA_DEPTH,
+                  basin="atlantic", color=BOX_COLOR_NA,    label="box_na_deep"),
+    "Trop":  dict(lat_min=-35.0, lat_max=35.0,  depth_max=PLASIM_TROP_DEPTH,
+                  basin="atlantic", color=BOX_COLOR_TROP,  label="box_trop_deep"),
+    "South": dict(lat_min=-90.0, lat_max=-35.0, depth_max=PLASIM_SOUTH_DEPTH,
                   basin=None,       color=BOX_COLOR_SOUTH, label="box_south"),
 }
 
@@ -897,8 +904,10 @@ def draw_plasim_section(ax, box_dict, depth_max_plot=1000.0):
             (lat_lo, 0.0), lat_hi - lat_lo, dmax,
             fill=False, edgecolor=box["color"], linewidth=1.3,
             linestyle="--", alpha=0.9, zorder=6))
-    ax.text(87.0, PLASIM_BOX_DEPTH + 25, f"{int(PLASIM_BOX_DEPTH)} m",
-            fontsize=6.5, color="#444444", ha="right", va="top")
+        # Depth label inside each box's bottom-right corner (white for contrast);
+        # boxes now have different depths in the deep configuration.
+        ax.text(lat_hi - 1.5, min(dmax, depth_max_plot) - 8, f"{int(dmax)} m",
+                fontsize=6.5, color="white", ha="right", va="bottom", zorder=7)
 
     ax.set_xlim(-90, 90)
     ax.set_ylim(depth_max_plot, 0)
@@ -987,8 +996,9 @@ def main():
     add_panel_label(ax, panel_labels_bot[2], y=0.04, va="bottom")
 
     # ── Column 4: PlaSim ──────────────────────────────────────────────────
-    # CLIMBER-X boxes re-created on the PlaSim 2.5° / 22-level grid (no taper):
-    # NA & Trop follow the Atlantic basin, South is global; box bottom 0–100 m.
+    # CLIMBER-X boxes re-created on the PlaSim 2.5° / 22-level grid (no taper),
+    # deep configuration (default in the analysis pipeline): NA & Trop follow the
+    # Atlantic basin (NA 0–1000 m, Trop 0–500 m), South is global (0–100 m).
     ax = axes_top[3]
     setup_globe(ax)
     draw_plasim_boxes_globe(ax, BOXES_PLASIM)
