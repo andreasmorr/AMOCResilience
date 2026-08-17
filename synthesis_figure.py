@@ -5,7 +5,7 @@ Reads:
     AMOCBox/data/paper/resilience_vs_co2_boxmodel.csv
         columns: co2_ppm, t_param, measure, value, attractor
 
-    AMOCPlaSim/data/plasim/resilience_metrics.csv
+    AMOCPlaSim/data/results/resilience_metrics.csv
         columns: co2_ppm, state, mean_conv_time_yr, mean_edge_dist,
                  ellipsoid_volume_1sigma, mean_amoc_strength_Sv
 
@@ -44,7 +44,7 @@ from amoc_plot_style import (
 FIGURE_WIDTH = 7.0   # inches
 
 BOX_CSV        = UMBRELLA / "AMOCBox"        / "data" / "paper" / "resilience_vs_co2_boxmodel.csv"
-PLASIM_CSV     = UMBRELLA / "AMOCPlaSim"    / "data" / "plasim" / "resilience_metrics_boxsalt_deep.csv"
+PLASIM_CSV     = UMBRELLA / "AMOCPlaSim"    / "data" / "results" / "resilience_metrics.csv"
 BOUSSINESQ_CSV = UMBRELLA / "AMOCBoussinesq" / "data" / "paper" / "resilience_vs_gamma_boussinesq.csv"
 CLIMBERX_CSV   = UMBRELLA / "AMOCClimberX"  / "data" / "paper" / "resilience_vs_co2_climberx.csv"
 

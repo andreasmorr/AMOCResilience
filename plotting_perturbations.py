@@ -812,8 +812,9 @@ PLASIM_DEPTH_EDGES = np.concatenate(
     [[0.0], 0.5 * (PLASIM_DEPTH[:-1] + PLASIM_DEPTH[1:]),
      [PLASIM_DEPTH[-1] + 0.5 * (PLASIM_DEPTH[-1] - PLASIM_DEPTH[-2])]])
 
-# Deep box configuration (default in the PlaSim analysis pipeline,
-# scripts/compute_box_salinity.py: salt_na_deep / salt_trop_deep / salt_south):
+# PlaSim deep-box configuration used by scripts/compute_box_salinity.py:
+#   salt_na   = North Atlantic 0-1000 m
+#   salt_trop = Tropical Atlantic 0-500 m
 #   North Atlantic  0–1000 m  (top 13 layers; bottom cell edge 1025 m)
 #   Tropical        0–500 m   (top 8 layers; 500 m cell edge)
 #   Southern        0–100 m   (unchanged; no Atlantic data at any depth)
@@ -823,9 +824,9 @@ PLASIM_SOUTH_DEPTH = 100.0
 
 BOXES_PLASIM = {
     "NA":    dict(lat_min=35.0,  lat_max=80.0,  depth_max=PLASIM_NA_DEPTH,
-                  basin="atlantic", color=BOX_COLOR_NA,    label="box_na_deep"),
+                  basin="atlantic", color=BOX_COLOR_NA,    label="box_na"),
     "Trop":  dict(lat_min=-35.0, lat_max=35.0,  depth_max=PLASIM_TROP_DEPTH,
-                  basin="atlantic", color=BOX_COLOR_TROP,  label="box_trop_deep"),
+                  basin="atlantic", color=BOX_COLOR_TROP,  label="box_trop"),
     "South": dict(lat_min=-90.0, lat_max=-35.0, depth_max=PLASIM_SOUTH_DEPTH,
                   basin=None,       color=BOX_COLOR_SOUTH, label="box_south"),
 }
