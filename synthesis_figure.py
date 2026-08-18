@@ -7,12 +7,16 @@ Reads:
 
     AMOCPlaSim/data/results/resilience_metrics.csv
         columns: co2_ppm, state, mean_conv_time_yr, mean_edge_dist,
-                 ellipsoid_volume_1sigma, mean_amoc_strength_Sv
+                 ellipsoid_volume_1sigma, ellipse_long_axis_1sigma,
+                 local_resilience, mean_amoc_strength_Sv
 
-    AMOCBoussinesq: placeholder (see TODO below)
-    AMOCClimberX:   placeholder (see TODO below)
+    AMOCBoussinesq/data/resilience/resilience_vs_gamma_boussinesq.csv
+        columns: co2_ppm, gamma, measure, value, attractor
 
-Output: synthesis_figure.pdf
+    AMOCClimberX/data/paper/resilience_vs_co2_climberx.csv
+        columns: co2_ppm, measure, value, attractor
+
+Output: plots/synthesis_figure.png
 
 Run from the AMOCResilience umbrella directory:
     python synthesis_figure.py
@@ -25,7 +29,6 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 
 # ---------------------------------------------------------------------------
@@ -36,16 +39,16 @@ UMBRELLA  = Path(__file__).resolve().parent
 sys.path.insert(0, str(UMBRELLA))
 
 from amoc_plot_style import (
-    COL_ON, COL_OFF, COL_EDGE,
+    COL_ON,
     COL_BOUS, COL_CLIMBERX, COL_PLASIM,
-    apply_style, savefig_pdf, add_panel_label,
+    apply_style, add_panel_label,
 )
 
 FIGURE_WIDTH = 7.0   # inches
 
 BOX_CSV        = UMBRELLA / "AMOCBox"        / "data" / "paper" / "resilience_vs_co2_boxmodel.csv"
 PLASIM_CSV     = UMBRELLA / "AMOCPlaSim"    / "data" / "results" / "resilience_metrics.csv"
-BOUSSINESQ_CSV = UMBRELLA / "AMOCBoussinesq" / "data" / "paper" / "resilience_vs_gamma_boussinesq.csv"
+BOUSSINESQ_CSV = UMBRELLA / "AMOCBoussinesq" / "data" / "resilience" / "resilience_vs_gamma_boussinesq.csv"
 CLIMBERX_CSV   = UMBRELLA / "AMOCClimberX"  / "data" / "paper" / "resilience_vs_co2_climberx.csv"
 
 # Maximum parameter values; rows beyond these are excluded (None = no cutoff)

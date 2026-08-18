@@ -15,9 +15,9 @@ plotting_perturbations.py  –  Multi-model perturbation & readout overview figu
          (c) Globe  — taper-weight field on 5° ocean grid
          (g) Section — tapered shallow-box cross-section, zoomed 0–300 m
 
-  Col 4  PlaSim / EOF weighting  (data placeholders; to be updated)
-         (d) Globe  — EOF-1 and EOF-2 spatial patterns
-         (h) Section — meridional EOF cross-section
+  Col 4  PlaSim deep-box readouts
+         (d) Globe  — PlaSim box footprints
+         (h) Section — PlaSim latitude-depth readout boxes
 
 Requires: matplotlib, numpy, scipy, cartopy
 Output:   plots/perturbations_overview.pdf
@@ -765,23 +765,6 @@ def draw_boussinesq_panel(ax):
     )
 
     ax.axvline(0, color="gray", linewidth=0.4, linestyle="--", alpha=0.5)
-
-
-# ---------------------------------------------------------------------------
-# EOF placeholder panel
-# ---------------------------------------------------------------------------
-
-def draw_eof_placeholder(ax, title_text="", globe=True):
-    ax.set_facecolor("#f5f5f5")
-    if not globe:
-        ax.set_xlim(-90, 90)
-        ax.set_ylim(5000, 0)
-    style_kw = dict(ha="center", va="center", fontsize=9, color="#888888")
-    ax.text(0.5, 0.5, title_text, transform=ax.transAxes, **style_kw)
-    ax.set_xticks([])
-    ax.set_yticks([])
-    for spine in ax.spines.values():
-        spine.set_edgecolor("#cccccc")
 
 
 # ---------------------------------------------------------------------------
