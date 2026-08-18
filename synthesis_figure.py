@@ -52,9 +52,9 @@ BOUSSINESQ_CSV = UMBRELLA / "AMOCBoussinesq" / "data" / "resilience" / "resilien
 CLIMBERX_CSV   = UMBRELLA / "AMOCClimberX"  / "data" / "paper" / "resilience_vs_co2_climberx.csv"
 
 # Maximum parameter values; rows beyond these are excluded (None = no cutoff)
-BOX_MAX_CO2      = 500    # ppm
+BOX_MAX_CO2      = None
 BOX_MAX_GAMMA    = None
-BOUS_MAX_GAMMA   = 0.06
+BOUS_MAX_GAMMA   = None
 BOUS_MAX_CO2     = None
 PLASIM_MAX_CO2   = None
 CLIMBERX_MAX_CO2 = None
@@ -65,7 +65,7 @@ BOX_MIN_GAMMA    = None
 BOUS_MIN_GAMMA   = None
 BOUS_MIN_CO2     = None
 PLASIM_MIN_CO2   = None
-CLIMBERX_MIN_CO2 = 300    # ppm
+CLIMBERX_MIN_CO2 = None
 
 
 # ---------------------------------------------------------------------------

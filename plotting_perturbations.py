@@ -20,7 +20,7 @@ plotting_perturbations.py  –  Multi-model perturbation & readout overview figu
          (h) Section — PlaSim latitude-depth readout boxes
 
 Requires: matplotlib, numpy, scipy, cartopy
-Output:   plots/perturbations_overview.pdf
+Output:   plots/perturbations_overview.png
 """
 from __future__ import annotations
 
@@ -414,9 +414,9 @@ BOUS_SOUTH_HI = 1.625           # −31.5°S  (cell face)
 BOUS_BOX_DEPTH = 0.28449
 
 # Build the actual model so the figure stays in sync with the perturbation logic
-# in AMOCBoussinesq/Boussinesq_box.py (finite membership + margin-only cosine
+# in AMOCBoussinesq/src/Boussinesq_box.py (finite membership + margin-only cosine
 # taper + interior boost so the box-mean of the field is 1).
-sys.path.insert(0, str(SCRIPT_DIR / "AMOCBoussinesq"))
+sys.path.insert(0, str(SCRIPT_DIR / "AMOCBoussinesq" / "src"))
 from Boussinesq_box import BoussinesqBox
 
 _bous_model = BoussinesqBox(BOUS_M, BOUS_N, 1e-3)
