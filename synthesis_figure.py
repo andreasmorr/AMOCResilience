@@ -106,7 +106,7 @@ PANELS = [
     (
         "basin_stability",
         "basin_volume",
-        None,
+        "basin_volume",
         None,
         "Basin volume",
         "Basin volume",
@@ -193,11 +193,12 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
     """Plot a single resilience-measure panel onto *ax*."""
 
     # ── Box model line ────────────────────────────────────────────────────
+    # Drop the last (highest-CO2) box-model point in each panel via .iloc[:-1].
     if df_box is not None and box_measure is not None:
         sub = df_box[
             (df_box["measure"] == box_measure) &
             (df_box["attractor"] == "on")
-        ].sort_values("co2_ppm")
+        ].sort_values("co2_ppm").iloc[:-1]
 
         if not sub.empty:
             ax.plot(
@@ -206,11 +207,11 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
                 color=COL_ON,
                 lw=1.5,
                 label="3-box model",
-                zorder=3,
+                zorder=2,
             )
         else:
             # Try without attractor filter (e.g. amoc_strength_sv)
-            sub_all = df_box[df_box["measure"] == box_measure].sort_values("co2_ppm")
+            sub_all = df_box[df_box["measure"] == box_measure].sort_values("co2_ppm").iloc[:-1]
             if not sub_all.empty:
                 ax.plot(
                     sub_all["co2_ppm"].values,
@@ -218,7 +219,7 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
                     color=COL_ON,
                     lw=1.5,
                     label="3-box model",
-                    zorder=3,
+                    zorder=2,
                 )
 
     # ── PlaSim points ─────────────────────────────────────────────────────
@@ -263,7 +264,6 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
     # separate series (circles vs stars) and are NOT connected across the gap.
     if df_climberx is not None and cx_measure is not None:
         sub_cx = df_climberx[df_climberx["measure"] == cx_measure]
-        modern_max = strong_min = None
         for state, marker, ms, lbl in (
             ("modern", "o", 4, "CLIMBER-X (modern)"),
             ("strong", "*", 7, "CLIMBER-X (strong)"),
@@ -274,16 +274,8 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
             ax.plot(
                 s["co2_ppm"].values, s["value"].values,
                 color=COL_CLIMBERX, lw=1.5, marker=marker, markersize=ms,
-                zorder=5, label=lbl,
+                zorder=4, label=lbl,
             )
-            if state == "modern":
-                modern_max = s["co2_ppm"].max()
-            else:
-                strong_min = s["co2_ppm"].min()
-        # Light vertical guide in the gap marking the strong-state onset.
-        if modern_max is not None and strong_min is not None:
-            ax.axvline(0.5 * (modern_max + strong_min), color=COL_CLIMBERX,
-                       ls=":", lw=0.8, alpha=0.5, zorder=1)
 
     ax.set_ylabel(ylabel, fontsize=8)
     ax.tick_params(labelsize=7)
