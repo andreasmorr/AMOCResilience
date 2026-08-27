@@ -54,7 +54,7 @@ CLIMBERX_CSV   = UMBRELLA / "AMOCClimberX"  / "data" / "paper" / "resilience_vs_
 # Maximum parameter values; rows beyond these are excluded (None = no cutoff)
 BOX_MAX_CO2      = None
 BOX_MAX_GAMMA    = None
-BOUS_MAX_GAMMA   = None
+BOUS_MAX_GAMMA   = 0.06   # exclude γ=0.07 (past AMOC-on bifurcation; ~67% of runs time out)
 BOUS_MAX_CO2     = None
 PLASIM_MAX_CO2   = None
 CLIMBERX_MAX_CO2 = None
