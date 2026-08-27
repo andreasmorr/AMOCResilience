@@ -255,21 +255,35 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
                 zorder=3,
             )
 
-    # ── CLIMBER-X scatter ─────────────────────────────────────────────────
+    # ── CLIMBER-X: two broken series ─────────────────────────────────────
+    # The long-equilibrium AMOC state changes branch with CO2: it is the
+    # reference "modern" state up to 330 ppm and the "strong" state from
+    # 345 ppm onward (attractor column set by export_resilience_csv.py).
+    # The two regimes describe different attractors, so they are drawn as two
+    # separate series (circles vs stars) and are NOT connected across the gap.
     if df_climberx is not None and cx_measure is not None:
-        sub_cx = df_climberx[
-            (df_climberx["measure"] == cx_measure) &
-            (df_climberx["attractor"] == "on")
-        ].sort_values("co2_ppm")
-        if not sub_cx.empty:
+        sub_cx = df_climberx[df_climberx["measure"] == cx_measure]
+        modern_max = strong_min = None
+        for state, marker, ms, lbl in (
+            ("modern", "o", 4, "CLIMBER-X (modern)"),
+            ("strong", "*", 7, "CLIMBER-X (strong)"),
+        ):
+            s = sub_cx[sub_cx["attractor"] == state].sort_values("co2_ppm")
+            if s.empty:
+                continue
             ax.plot(
-                sub_cx["co2_ppm"].values,
-                sub_cx["value"].values,
-                color=COL_CLIMBERX,
-                lw=1.5,
-                zorder=5,
-                label="CLIMBER-X",
+                s["co2_ppm"].values, s["value"].values,
+                color=COL_CLIMBERX, lw=1.5, marker=marker, markersize=ms,
+                zorder=5, label=lbl,
             )
+            if state == "modern":
+                modern_max = s["co2_ppm"].max()
+            else:
+                strong_min = s["co2_ppm"].min()
+        # Light vertical guide in the gap marking the strong-state onset.
+        if modern_max is not None and strong_min is not None:
+            ax.axvline(0.5 * (modern_max + strong_min), color=COL_CLIMBERX,
+                       ls=":", lw=0.8, alpha=0.5, zorder=1)
 
     ax.set_ylabel(ylabel, fontsize=8)
     ax.tick_params(labelsize=7)
@@ -345,14 +359,15 @@ def main() -> None:
     legend_elements = [
         Line2D([0], [0], color=COL_ON,       lw=1.5, marker="",  markersize=6, label="3-box model"),
         Line2D([0], [0], color=COL_BOUS,     lw=1.5, marker="",  markersize=6, label="Boussinesq"),
-        Line2D([0], [0], color=COL_CLIMBERX, lw=1.5, marker="",  markersize=6, label="CLIMBER-X"),
+        Line2D([0], [0], color=COL_CLIMBERX, lw=1.5, marker="o", markersize=5, label="CLIMBER-X (modern)"),
+        Line2D([0], [0], color=COL_CLIMBERX, lw=1.5, marker="*", markersize=7, label="CLIMBER-X (strong)"),
         Line2D([0], [0], color=COL_PLASIM,   lw=0,   marker="^", markersize=6, label="PlaSim"),
     ]
     fig.legend(
         handles=legend_elements,
         loc="lower center",
         bbox_to_anchor=(0.5, -0.04),
-        ncol=4,
+        ncol=5,
         fontsize=7,
         framealpha=0.8,
     )
