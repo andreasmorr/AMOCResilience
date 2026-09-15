@@ -28,12 +28,15 @@ def apply_style() -> None:
         # Font
         "font.family":       "serif",
         "font.serif":        ["DejaVu Serif", "Georgia", "Times New Roman", "serif"],
-        "font.size":         9,
-        "axes.titlesize":    9,
-        "axes.labelsize":    9,
-        "xtick.labelsize":   8,
-        "ytick.labelsize":   8,
-        "legend.fontsize":   8,
+        # Sizes are chosen for figures drawn at the single-column \textwidth
+        # (≈ 6.30 in on A4 with 2.5 cm margins) and included at that width, so
+        # the points below land on the page essentially as specified.
+        "font.size":         8,
+        "axes.titlesize":    8,
+        "axes.labelsize":    8,
+        "xtick.labelsize":   7,
+        "ytick.labelsize":   7,
+        "legend.fontsize":   7,
         # Figure
         "figure.dpi":        150,
         "savefig.dpi":       300,
@@ -42,11 +45,11 @@ def apply_style() -> None:
         "savefig.pad_inches": 0.02,
         # Lines / patches
         "lines.linewidth":   1.2,
-        "axes.linewidth":    0.7,
-        "xtick.major.width": 0.7,
-        "ytick.major.width": 0.7,
-        "xtick.minor.width": 0.5,
-        "ytick.minor.width": 0.5,
+        "axes.linewidth":    0.6,
+        "xtick.major.width": 0.6,
+        "ytick.major.width": 0.6,
+        "xtick.minor.width": 0.4,
+        "ytick.minor.width": 0.4,
         # PDF backend
         "pdf.fonttype":      42,   # TrueType fonts in PDF (required by many journals)
         "ps.fonttype":       42,
@@ -89,10 +92,12 @@ IC_EDGE_LW       = 0.4    # IC start-marker edge line width
 # Hard-coded panel size constants (all in inches)
 # ---------------------------------------------------------------------------
 
-PANEL_SIZE   = 3.0    # width = height of the square phase-space panels
-TOP_HEIGHT   = 1.4    # height of the time-series top row
-LEFT_MARGIN  = 0.65   # room for y-axis label
-RIGHT_MARGIN = 0.15
+# Panel/margin sizes are chosen so make_paper_figure(ncols=2) renders at ≈ the
+# single-column \textwidth (6.30 in) once the tight bounding box is applied.
+PANEL_SIZE   = 2.9    # width = height of the square phase-space panels
+TOP_HEIGHT   = 1.35   # height of the time-series top row
+LEFT_MARGIN  = 0.60   # room for y-axis label
+RIGHT_MARGIN = 0.12
 TOP_MARGIN   = 0.35
 BOT_MARGIN   = 0.50
 H_GAP        = 0.45   # vertical gap between the two rows
@@ -174,6 +179,7 @@ def add_panel_label(
     y: float = 0.97,
     va: str = "top",
     ha: str = "left",
+    fontsize: float = 9,
 ) -> None:
     """
     Add a panel label (e.g. '(a)') in axes-fraction coordinates.
@@ -184,11 +190,12 @@ def add_panel_label(
     label : str  e.g. '(a)', '(b)', …
     x, y : float  position in axes-fraction units (default: upper-left corner)
     va, ha : str  vertical / horizontal text alignment (default: top-left)
+    fontsize : float  label font size in points (default: 9)
     """
     ax.text(
         x, y, label,
         transform=ax.transAxes,
-        fontsize=9,
+        fontsize=fontsize,
         fontweight="bold",
         va=va,
         ha=ha,

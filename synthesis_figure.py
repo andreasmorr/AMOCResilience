@@ -44,7 +44,7 @@ from amoc_plot_style import (
     apply_style, add_panel_label,
 )
 
-FIGURE_WIDTH = 7.0   # inches
+FIGURE_WIDTH = 6.30   # inches (single-column \textwidth: A4, 2.5 cm margins)
 
 BOX_CSV        = UMBRELLA / "AMOCBox"        / "data" / "paper" / "resilience_vs_co2_boxmodel.csv"
 PLASIM_CSV     = UMBRELLA / "AMOCPlaSim"    / "data" / "results" / "resilience_metrics.csv"
@@ -319,7 +319,7 @@ def main() -> None:
         df_box, df_plasim, df_boussinesq, df_climberx,
         xlabel=False,
     )
-    add_panel_label(ax_amoc, "(a)", x=0.01)
+    add_panel_label(ax_amoc, "(a)", x=0.99, ha="right")
 
     # Resilience-measure panels – 2×2 grid with shared x-axes per column
     panel_labels = ["(b)", "(c)", "(d)", "(e)"]
@@ -344,7 +344,7 @@ def main() -> None:
         if not is_bottom_row:
             plt.setp(ax.get_xticklabels(), visible=False)
 
-        add_panel_label(ax, panel_labels[panel_idx])
+        add_panel_label(ax, panel_labels[panel_idx], x=0.99, ha="right")
 
     # Shared legend – placed below figure
     from matplotlib.lines import Line2D
@@ -358,7 +358,7 @@ def main() -> None:
     fig.legend(
         handles=legend_elements,
         loc="lower center",
-        bbox_to_anchor=(0.5, -0.04),
+        bbox_to_anchor=(0.5, -0.07),
         ncol=5,
         fontsize=7,
         framealpha=0.8,
@@ -366,7 +366,7 @@ def main() -> None:
 
     out_path = UMBRELLA / "plots" / "synthesis_figure.png"
     (UMBRELLA / "plots").mkdir(exist_ok=True)
-    fig.savefig(out_path, dpi=200, bbox_inches="tight")
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")
     print(f"Figure saved: {out_path}")
     plt.close(fig)
 

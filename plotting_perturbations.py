@@ -1,23 +1,26 @@
 """
 plotting_perturbations.py  –  Multi-model perturbation & readout overview figure.
 
-4-column × 2-row layout:
+4-column × 2-row layout (top row: globe footprints; bottom row: meridional sections):
 
-  Col 1  CLIMBER-X non-tapered Wood boxes
-         (a) Globe  — box footprints on Atlantic
-         (e) Section — deep box depth structure (lat × depth at 26°W)
+  Col 1  3-box model (Wood et al.) — North Atlantic & Tropical boxes only
+         (a) Globe   — box footprints on the Atlantic
+         (e) Section — box depth structure (lat × depth at 28°W)
+         Salt is conserved internally via the diagnosed Indo-Pacific box, so no
+         explicit compensation region is perturbed.
 
-  Col 2  Boussinesq context
-         (b) Globe  — same Wood-box footprints for reference
-         (f) 2D Boussinesq model domain with North Atlantic & Tropical box masks
+  Col 2  Boussinesq — North Atlantic, Tropical, and Southern compensation boxes
+         (b) Globe   — box footprints as a constant-width Atlantic strip (2-D model)
+         (f) 2D Boussinesq tapered perturbation (lat × depth)
 
-  Col 3  CLIMBER-X tapered perturbation
-         (c) Globe  — taper-weight field on 5° ocean grid
-         (g) Section — tapered shallow-box cross-section, zoomed 0–300 m
+  Col 3  CLIMBER-X — North Atlantic & Tropical perturbation boxes, with the entire
+         rest of the world ocean as the (global) salt-compensation region
+         (c) Globe   — tapered NA/Trop boxes + rest-of-ocean compensation
+         (g) Section — tapered shallow boxes (0–105 m), zoomed 0–300 m
 
-  Col 4  PlaSim deep-box readouts
-         (d) Globe  — PlaSim box footprints
-         (h) Section — PlaSim latitude-depth readout boxes
+  Col 4  PlaSim-LSG — North Atlantic & Tropical deep readout boxes only
+         (d) Globe   — box footprints
+         (h) Section — latitude-depth readout boxes (NA 0–1000 m, Trop 0–500 m)
 
 Requires: matplotlib, numpy, scipy, cartopy
 Output:   plots/perturbations_overview.png
@@ -56,6 +59,27 @@ PLOTS_DIR  = SCRIPT_DIR / "plots"
 
 sys.path.insert(0, str(SCRIPT_DIR))
 from amoc_plot_style import apply_style, add_panel_label, savefig_pdf
+
+# ---------------------------------------------------------------------------
+# Sizing for a single-column A4 (2.5 cm margins) LaTeX document.
+# \textwidth = 21 cm − 2×2.5 cm = 16 cm ≈ 6.30 in.  The figure is built at that
+# width and included with \includegraphics[width=\textwidth], so the font points
+# and line widths below map ~1:1 onto the printed page.
+# ---------------------------------------------------------------------------
+FIG_WIDTH_IN  = 6.30
+FIG_HEIGHT_IN = 3.55
+
+FS_TITLE  = 7.0    # column titles
+FS_LABEL  = 6.5    # axis labels
+FS_TICK   = 5.5    # tick labels
+FS_PANEL  = 7.5    # (a), (b), … panel labels
+FS_LEGEND = 6.0    # figure legend
+FS_ANNOT  = 5.0    # in-panel depth annotations
+
+LW_COAST = 0.3     # coastlines
+LW_GRID  = 0.25    # graticule
+LW_BOX   = 0.8     # dashed box outlines / depth lines
+LW_AUX   = 0.4     # centre / guide lines
 
 # ---------------------------------------------------------------------------
 # CLIMBER-X 5° ocean grid  (23 levels, 36 lat × 72 lon cells)
@@ -443,7 +467,7 @@ _PC_TRANSFORM  = ccrs.PlateCarree()         if HAS_CARTOPY else None
 
 _OCEAN_COLOR   = "#cce5f5"
 _LAND_COLOR    = "#e0e0e0"
-_GRID_KW       = dict(linewidth=0.3, color="gray", alpha=0.4, linestyle="--")
+_GRID_KW       = dict(linewidth=LW_GRID, color="gray", alpha=0.4, linestyle="--")
 
 
 def setup_globe(ax):
@@ -454,24 +478,24 @@ def setup_globe(ax):
         ax.add_feature(cfeature.LAND.with_scale("50m"),
                        facecolor=_LAND_COLOR, zorder=1)
         ax.add_feature(cfeature.COASTLINE.with_scale("50m"),
-                       linewidth=0.4, edgecolor="#666666", zorder=2)
+                       linewidth=LW_COAST, edgecolor="#666666", zorder=2)
         ax.gridlines(**_GRID_KW)
     else:
         ax.set_facecolor(_OCEAN_COLOR)
         ax.set_xlim(-85, 35)
         ax.set_ylim(-75, 90)
-        ax.axhline(0, color="gray", linewidth=0.4, linestyle="--")
-        ax.set_xlabel("Longitude (°E)", fontsize=7)
-        ax.set_ylabel("Latitude (°N)", fontsize=7)
+        ax.axhline(0, color="gray", linewidth=LW_AUX, linestyle="--")
+        ax.set_xlabel("Longitude (°E)", fontsize=FS_LABEL)
+        ax.set_ylabel("Latitude (°N)", fontsize=FS_LABEL)
 
 
-def _pcolor_globe(ax, w2, color_hex):
+def _pcolor_globe(ax, w2, color_hex, alpha_max=0.85):
     """Overlay a (lat × lon) weight field on the globe as a colour fill.
     Land cells are zeroed out so only ocean cells receive colour."""
     w2 = w2 * OCEAN_MASK          # mask land cells to weight = 0
     rgba = np.array(mcolors.to_rgba(color_hex))
     cmap = LinearSegmentedColormap.from_list(
-        "", [(rgba[0], rgba[1], rgba[2], 0.0), (*rgba[:3], 0.85)], N=256
+        "", [(rgba[0], rgba[1], rgba[2], 0.0), (*rgba[:3], alpha_max)], N=256
     )
     kw = dict(cmap=cmap, vmin=0, vmax=1, shading="flat", zorder=3)
     if HAS_CARTOPY:
@@ -520,43 +544,65 @@ def draw_boxes_smooth(ax, box_dict):
         )
 
 
+def _fine_box_footprint(box):
+    """Boolean (lat, lon) footprint of a box on the fine grid, honouring an
+    Atlantic basin mask (stretched to coastlines) like draw_boxes_fine_grid."""
+    lat_ok = (_FINE_LAT >= box["lat_min"]) & (_FINE_LAT <= box["lat_max"])
+    lo_min = ((box["lon_min"] + 180) % 360) - 180
+    lo_max = ((box["lon_max"] + 180) % 360) - 180
+    lon_norm = ((_FINE_LON + 180) % 360) - 180
+    if (box["lon_max"] - box["lon_min"]) >= 360:
+        lon_ok = np.ones(len(_FINE_LON), dtype=bool)
+    elif lo_min <= lo_max:
+        lon_ok = (lon_norm >= lo_min) & (lon_norm <= lo_max)
+    else:
+        lon_ok = (lon_norm >= lo_min) | (lon_norm <= lo_max)
+    sel = lat_ok[:, None] & lon_ok[None, :] & FINE_OCEAN_MASK
+    if box.get("basin") == "atlantic":
+        # Stretch the box longitudinally to the basin coastlines instead of the
+        # nominal lon_min/lon_max rectangle.  South of the basin mask's extent
+        # (open South Atlantic) the basin mask is empty, so there we keep the
+        # longitude-rectangle fill so the box still reaches its southern latitude
+        # bound.  The extension is clamped to the Atlantic's longitudinal span at
+        # its southern edge so it does not leak into the Pacific west of Chile.
+        ext_lon_ok = (lon_norm >= ATL_SOUTH_LON_MIN) & (lon_norm <= ATL_SOUTH_LON_MAX)
+        south_ext = (_FINE_LAT < ATL_SOUTH_EDGE)[:, None] & ext_lon_ok[None, :]
+        sel = sel & (FINE_ATL_MASK | south_ext)
+    return sel
+
+
+def _pcolor_fine(ax, sel, color_hex, alpha_max=0.65):
+    """Fill a fine-grid boolean mask with a single colour (transparent → colour)."""
+    w2 = sel.astype(float)
+    rgba = np.array(mcolors.to_rgba(color_hex))
+    cmap = LinearSegmentedColormap.from_list(
+        "", [(rgba[0], rgba[1], rgba[2], 0.0), (*rgba[:3], alpha_max)], N=2
+    )
+    kw = dict(cmap=cmap, vmin=0, vmax=1, shading="flat", zorder=3)
+    if HAS_CARTOPY:
+        ax.pcolormesh(_FINE_LON_EDGES, _FINE_LAT_EDGES, w2,
+                      transform=_PC_TRANSFORM, **kw)
+    else:
+        ax.pcolormesh(_FINE_LON_EDGES, _FINE_LAT_EDGES, w2, **kw)
+
+
 def draw_boxes_fine_grid(ax, box_dict):
     """Plot box regions using the 0.5° FINE_OCEAN_MASK — smooth and land-excluded.
     Avoids cartopy polygon-fill artefacts that plague add_geometries on orthographic."""
     for key, box in box_dict.items():
-        lat_ok = (_FINE_LAT >= box["lat_min"]) & (_FINE_LAT <= box["lat_max"])
-        lo_min = ((box["lon_min"] + 180) % 360) - 180
-        lo_max = ((box["lon_max"] + 180) % 360) - 180
-        lon_norm = ((_FINE_LON + 180) % 360) - 180
-        if (box["lon_max"] - box["lon_min"]) >= 360:
-            lon_ok = np.ones(len(_FINE_LON), dtype=bool)
-        elif lo_min <= lo_max:
-            lon_ok = (lon_norm >= lo_min) & (lon_norm <= lo_max)
-        else:
-            lon_ok = (lon_norm >= lo_min) | (lon_norm <= lo_max)
-        sel = lat_ok[:, None] & lon_ok[None, :] & FINE_OCEAN_MASK
-        if box.get("basin") == "atlantic":
-            # Stretch the box longitudinally to the basin coastlines instead of
-            # the nominal lon_min/lon_max rectangle.  South of the basin mask's
-            # extent (open South Atlantic) the basin mask is empty, so there we
-            # keep the longitude-rectangle fill so the box still reaches its
-            # southern latitude bound (where the Southern box begins).  The
-            # extension is clamped to the Atlantic's longitudinal span at its
-            # southern edge so it does not leak into the Pacific west of Chile.
-            ext_lon_ok = (lon_norm >= ATL_SOUTH_LON_MIN) & (lon_norm <= ATL_SOUTH_LON_MAX)
-            south_ext = (_FINE_LAT < ATL_SOUTH_EDGE)[:, None] & ext_lon_ok[None, :]
-            sel = sel & (FINE_ATL_MASK | south_ext)
-        w2 = sel.astype(float)
-        rgba = np.array(mcolors.to_rgba(box["color"]))
-        cmap = LinearSegmentedColormap.from_list(
-            "", [(rgba[0], rgba[1], rgba[2], 0.0), (*rgba[:3], 0.65)], N=2
-        )
-        kw = dict(cmap=cmap, vmin=0, vmax=1, shading="flat", zorder=3)
-        if HAS_CARTOPY:
-            ax.pcolormesh(_FINE_LON_EDGES, _FINE_LAT_EDGES, w2,
-                         transform=_PC_TRANSFORM, **kw)
-        else:
-            ax.pcolormesh(_FINE_LON_EDGES, _FINE_LAT_EDGES, w2, **kw)
+        _pcolor_fine(ax, _fine_box_footprint(box), box["color"])
+
+
+def draw_box_model_globe(ax, box_dict):
+    """Box model globe: the North Atlantic & Tropical boxes plus the entire rest
+    of the world ocean as the (implicit) salt-compensation region, mirroring the
+    CLIMBER-X global-compensation representation."""
+    covered = np.zeros((len(_FINE_LAT), len(_FINE_LON)), dtype=bool)
+    for box in box_dict.values():
+        covered |= _fine_box_footprint(box)
+    rest = FINE_OCEAN_MASK & ~covered
+    _pcolor_fine(ax, rest, BOX_COLOR_SOUTH, alpha_max=0.45)
+    draw_boxes_fine_grid(ax, box_dict)
 
 
 def draw_section_strip_projected(ax, box_dict, lon=_SECTION_LON_CTR,
@@ -613,7 +659,7 @@ def draw_boxes_on_globe(ax, box_dict, taper=False):
         _pcolor_globe(ax, w2, box["color"])
 
 
-def box_legend(ax, box_dict, fontsize=7, loc="lower left"):
+def box_legend(ax, box_dict, fontsize=FS_LEGEND, loc="lower left"):
     handles = [
         mpatches.Patch(color=b["color"], alpha=0.7, label=b["label"])
         for b in box_dict.values()
@@ -638,6 +684,7 @@ def draw_section(ax, box_dict, taper=False, depth_max_plot=None, label_depths=Tr
     lat_lines: if True, draw the vertical box-edge lines and the gray centre line.
     """
     from matplotlib.colors import LinearSegmentedColormap as LSC
+    traced = {}   # key -> (lat_lo_edge, lat_hi_edge, depth_bottom_edge) of filled cells
     for key, box in box_dict.items():
         w3 = make_3d_mask(box, taper=taper)   # (lev, lat, lon)
         w2 = w3[:, :, SECTION_IDX]            # (lev, lat)
@@ -647,6 +694,11 @@ def draw_section(ax, box_dict, taper=False, depth_max_plot=None, label_depths=Tr
         cmap = LSC.from_list(key, [(1, 1, 1, 0), rgba], N=256)
         ax.pcolormesh(LAT_EDGES, ZRO_EDGES, w2,
                       cmap=cmap, vmin=0, vmax=1, shading="flat", zorder=2)
+        # Cell-edge extent of the filled cells, so an outline can trace the fill.
+        rows = np.where(w2.max(axis=1) > 0)[0]   # depth cells with any fill
+        cols = np.where(w2.max(axis=0) > 0)[0]   # latitude cells with any fill
+        traced[key] = (LAT_EDGES[cols.min()], LAT_EDGES[cols.max() + 1],
+                       ZRO_EDGES[rows.max() + 1])
 
     depth_lim = depth_max_plot if depth_max_plot is not None else float(ZRO[-1] + 300)
 
@@ -656,12 +708,22 @@ def draw_section(ax, box_dict, taper=False, depth_max_plot=None, label_depths=Tr
             dmax = box.get("depth_max")
             if dmax is not None:
                 if depth_lines and not box_limits:
-                    ax.axhline(dmax, color=box["color"], linewidth=1.0,
+                    ax.axhline(dmax, color=box["color"], linewidth=LW_BOX,
                                linestyle="--", alpha=0.7, zorder=5)
                 ax.text(87.0, dmax + 25, f"{int(dmax)} m",
-                        fontsize=6.5, color=box["color"], ha="right", va="top")
+                        fontsize=FS_ANNOT, color=box["color"], ha="right", va="top")
 
-    if box_limits:
+    if box_limits == "trace":
+        # Dashed outline tracing the actual filled cells (cell-edge extent).
+        for key, box in box_dict.items():
+            if key not in traced:
+                continue
+            lat_lo, lat_hi, depth_bottom = traced[key]
+            ax.add_patch(mpatches.Rectangle(
+                (lat_lo, 0.0), lat_hi - lat_lo, depth_bottom,
+                fill=False, edgecolor=box["color"], linewidth=LW_BOX,
+                linestyle="--", alpha=0.9, zorder=6))
+    elif box_limits:
         # Finite box limits as dashed rectangles: lat range × [surface, depth_max]
         for key, box in box_dict.items():
             dmax = box.get("depth_max")
@@ -670,27 +732,27 @@ def draw_section(ax, box_dict, taper=False, depth_max_plot=None, label_depths=Tr
             lat_hi = min(box["lat_max"],  90.0)
             ax.add_patch(mpatches.Rectangle(
                 (lat_lo, 0.0), lat_hi - lat_lo, depth_bottom,
-                fill=False, edgecolor=box["color"], linewidth=1.3,
+                fill=False, edgecolor=box["color"], linewidth=LW_BOX,
                 linestyle="--", alpha=0.9, zorder=6))
     elif lat_lines:
         # Latitude boundary lines
         for key, box in box_dict.items():
             for lat_edge in [box["lat_min"], box["lat_max"]]:
-                ax.axvline(lat_edge, color=box["color"], linewidth=0.8,
+                ax.axvline(lat_edge, color=box["color"], linewidth=LW_AUX,
                            linestyle=":", alpha=0.5, zorder=5)
 
     ax.set_xlim(-90, 90)
     ax.set_ylim(depth_lim, 0)
     ax.set_facecolor("#f0f0f0")
-    ax.set_xlabel("Latitude", fontsize=8)
-    if lat_lines:
-        ax.axvline(0, color="gray", linewidth=0.4, linestyle="--", alpha=0.5)
+    ax.set_xlabel("Latitude", fontsize=FS_LABEL)
 
-    ticks = np.arange(-90, 91, 30)
+    ticks = np.arange(-90, 91, 45)
     ax.set_xticks(ticks)
     ax.set_xticklabels(
-        [f"{abs(t)}°{'N' if t >= 0 else 'S'}" for t in ticks], fontsize=6.5
+        [f"{abs(t)}°{'N' if t >= 0 else 'S'}" if t != 0 else "0°" for t in ticks],
+        fontsize=FS_TICK
     )
+    ax.tick_params(length=2, width=0.5, pad=1.5)
 
 
 # ---------------------------------------------------------------------------
@@ -749,22 +811,22 @@ def draw_boussinesq_panel(ax):
         lat_lo, lat_hi = _bous_lat_deg(x_lo), _bous_lat_deg(x_hi)
         ax.add_patch(mpatches.Rectangle(
             (lat_lo, 0.0), lat_hi - lat_lo, box_bottom_m,
-            fill=False, edgecolor=col, linewidth=1.3, linestyle="--",
+            fill=False, edgecolor=col, linewidth=LW_BOX, linestyle="--",
             alpha=0.9, zorder=6))
 
     ax.set_facecolor("#f0f0f0")
     ax.set_xlim(-90, 90)
     # ylim set externally to match shared axis (1000 m); depth increases downward
-    ax.set_xlabel("Latitude", fontsize=8)
-    ax.set_ylabel("Depth (m)", fontsize=8)
+    ax.set_xlabel("Latitude", fontsize=FS_LABEL)
+    ax.set_ylabel("Depth (m)", fontsize=FS_LABEL)
 
-    lat_ticks = np.arange(-90, 91, 30)
+    lat_ticks = np.arange(-90, 91, 45)
     ax.set_xticks(lat_ticks)
     ax.set_xticklabels(
-        [f"{abs(t)}°{'N' if t >= 0 else 'S'}" for t in lat_ticks], fontsize=6.5
+        [f"{abs(t)}°{'N' if t >= 0 else 'S'}" if t != 0 else "0°" for t in lat_ticks],
+        fontsize=FS_TICK
     )
-
-    ax.axvline(0, color="gray", linewidth=0.4, linestyle="--", alpha=0.5)
+    ax.tick_params(length=2, width=0.5, pad=1.5)
 
 
 # ---------------------------------------------------------------------------
@@ -864,21 +926,24 @@ def draw_plasim_boxes_globe(ax, box_dict):
             ax.pcolormesh(PLASIM_LON_EDGES, PLASIM_LAT_EDGES, w2, **kw)
 
 
-def draw_plasim_section(ax, box_dict, depth_max_plot=1000.0):
+def draw_plasim_section(ax, box_dict, depth_max_plot=1000.0, fill=True,
+                        label_depths=True):
     """Zonally-averaged meridional section (lat × depth) of the PlaSim boxes.
-    Each box fills its latitude band down to its depth_max on the PlaSim depth
-    grid; finite box limits are outlined as dashed rectangles."""
+    Each box's finite limits are outlined as dashed rectangles; when ``fill`` is
+    True the box interior is also colour-filled and when ``label_depths`` is True
+    each box's depth is annotated."""
     from matplotlib.colors import LinearSegmentedColormap as LSC
-    for key, box in box_dict.items():
-        lat_ok = (PLASIM_LAT >= box["lat_min"]) & (PLASIM_LAT <= box["lat_max"])
-        dep_ok = PLASIM_DEPTH <= box["depth_max"]
-        w2 = (dep_ok[:, None] & lat_ok[None, :]).astype(float)   # (depth, lat)
-        if w2.max() == 0:
-            continue
-        rgba = np.array(mcolors.to_rgba(box["color"]))
-        cmap = LSC.from_list(key, [(1, 1, 1, 0), rgba], N=256)
-        ax.pcolormesh(PLASIM_LAT_EDGES, PLASIM_DEPTH_EDGES, w2,
-                      cmap=cmap, vmin=0, vmax=1, shading="flat", zorder=2)
+    if fill:
+        for key, box in box_dict.items():
+            lat_ok = (PLASIM_LAT >= box["lat_min"]) & (PLASIM_LAT <= box["lat_max"])
+            dep_ok = PLASIM_DEPTH <= box["depth_max"]
+            w2 = (dep_ok[:, None] & lat_ok[None, :]).astype(float)   # (depth, lat)
+            if w2.max() == 0:
+                continue
+            rgba = np.array(mcolors.to_rgba(box["color"]))
+            cmap = LSC.from_list(key, [(1, 1, 1, 0), rgba], N=256)
+            ax.pcolormesh(PLASIM_LAT_EDGES, PLASIM_DEPTH_EDGES, w2,
+                          cmap=cmap, vmin=0, vmax=1, shading="flat", zorder=2)
 
     for key, box in box_dict.items():
         dmax   = box["depth_max"]
@@ -886,21 +951,61 @@ def draw_plasim_section(ax, box_dict, depth_max_plot=1000.0):
         lat_hi = min(box["lat_max"],  90.0)
         ax.add_patch(mpatches.Rectangle(
             (lat_lo, 0.0), lat_hi - lat_lo, dmax,
-            fill=False, edgecolor=box["color"], linewidth=1.3,
+            fill=False, edgecolor=box["color"], linewidth=LW_BOX,
             linestyle="--", alpha=0.9, zorder=6))
-        # Depth label inside each box's bottom-right corner (white for contrast);
-        # boxes now have different depths in the deep configuration.
-        ax.text(lat_hi - 1.5, min(dmax, depth_max_plot) - 8, f"{int(dmax)} m",
-                fontsize=6.5, color="white", ha="right", va="bottom", zorder=7)
+        # Depth label at each box's bottom-right corner; white reads on the fill,
+        # otherwise use the box colour on the plain background.
+        if label_depths:
+            ax.text(lat_hi - 1.5, min(dmax, depth_max_plot) - 8, f"{int(dmax)} m",
+                    fontsize=FS_ANNOT, color="white" if fill else box["color"],
+                    ha="right", va="bottom", zorder=7)
 
     ax.set_xlim(-90, 90)
     ax.set_ylim(depth_max_plot, 0)
     ax.set_facecolor("#f0f0f0")
-    ax.axvline(0, color="gray", linewidth=0.4, linestyle="--", alpha=0.5)
-    ticks = np.arange(-90, 91, 30)
+    ticks = np.arange(-90, 91, 45)
     ax.set_xticks(ticks)
     ax.set_xticklabels(
-        [f"{abs(t)}°{'N' if t >= 0 else 'S'}" for t in ticks], fontsize=6.5)
+        [f"{abs(t)}°{'N' if t >= 0 else 'S'}" if t != 0 else "0°" for t in ticks],
+        fontsize=FS_TICK)
+    ax.tick_params(length=2, width=0.5, pad=1.5)
+
+
+# ---------------------------------------------------------------------------
+# CLIMBER-X globe & section: NA/Trop perturbation boxes + global compensation
+# ---------------------------------------------------------------------------
+
+def draw_climberx_globe(ax):
+    """CLIMBER-X globe: tapered North Atlantic & Tropical perturbation boxes, with
+    the entire rest of the world ocean shaded as the global salt-compensation
+    region.  The anomaly added to the two Atlantic boxes is compensated uniformly
+    over every other ocean cell (top 4 layers), so the compensation footprint is
+    the whole ocean minus the NA and Tropical boxes."""
+    na_hm   = box_hmask(BOXES_CLIMBERX["NA"])
+    trop_hm = box_hmask(BOXES_CLIMBERX["Trop"])
+    rest = OCEAN_MASK & ~na_hm & ~trop_hm
+    _pcolor_globe(ax, rest.astype(float), BOX_COLOR_SOUTH, alpha_max=0.45)
+    for key in ("NA", "Trop"):
+        box = BOXES_CLIMBERX[key]
+        w3  = make_3d_mask(box, taper=True)
+        vm  = vert_mask(box["depth_max"])
+        w2  = w3[vm, :, :].mean(axis=0)
+        _pcolor_globe(ax, w2, box["color"])
+
+
+def draw_climberx_section(ax, depth_max_plot=300):
+    """CLIMBER-X meridional section: North Atlantic & Tropical tapered boxes (top
+    4 layers, 0–105 m).  A faint full-width surface band marks the global
+    compensation layer that carries the compensating anomaly over the rest of the
+    ocean, so the two Atlantic boxes appear carved out of a global surface layer
+    rather than paired with a discrete Southern box."""
+    comp_depth = float(BOXES_CLIMBERX["NA"]["depth_max"])   # 105 m, top 4 layers
+    ax.add_patch(mpatches.Rectangle(
+        (-90, 0.0), 180, comp_depth,
+        facecolor=BOX_COLOR_SOUTH, alpha=0.30, edgecolor="none", zorder=1))
+    pert = {k: BOXES_CLIMBERX[k] for k in ("NA", "Trop")}
+    draw_section(ax, pert, taper=True, depth_max_plot=depth_max_plot,
+                 label_depths=False, box_limits=True)
 
 
 # ---------------------------------------------------------------------------
@@ -910,17 +1015,28 @@ def draw_plasim_section(ax, box_dict, depth_max_plot=1000.0):
 def main():
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
     apply_style()
+    # Override the shared paper style with sizes tuned for a single-column figure
+    # rendered at FIG_WIDTH_IN (≈ \textwidth); points then map ~1:1 onto the page.
+    plt.rcParams.update({
+        "font.size":       FS_LABEL,
+        "axes.titlesize":  FS_TITLE,
+        "axes.labelsize":  FS_LABEL,
+        "xtick.labelsize": FS_TICK,
+        "ytick.labelsize": FS_TICK,
+        "legend.fontsize": FS_LEGEND,
+        "axes.linewidth":  0.5,
+    })
 
     # ── Build figure layout ────────────────────────────────────────────────
-    fig = plt.figure(figsize=(17, 9))
+    fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN))
     gs  = gridspec.GridSpec(
         2, 4,
         figure=fig,
         height_ratios=[1.35, 1.0],
-        hspace=0.40,
+        hspace=0.22,
         wspace=0.28,
         left=0.06, right=0.97,
-        top=0.93,  bottom=0.09,
+        top=0.93,  bottom=0.23,
     )
 
     # Top row: globe panels (GeoAxes if cartopy, otherwise regular)
@@ -937,92 +1053,109 @@ def main():
     panel_labels_bot = ["(e)", "(f)", "(g)", "(h)"]
 
     # ── Column 1: Box model regions ───────────────────────────────────────
+    # The 3-box model perturbs the North Atlantic and Tropical boxes; salt is
+    # conserved over the rest of the ocean, shown (as for CLIMBER-X) by a green
+    # compensation region covering the whole ocean except the NA and Tropical
+    # boxes on the globe, and the southern remainder in the section.
+    box_globe_natrop = {k: v for k, v in BOXES_GLOBE.items() if k != "South"}
+    box_sect_natrop  = {k: v for k, v in BOXES.items()       if k != "South"}
+    # Section compensation box: the southern latitudes not covered by the Tropical
+    # box, at the same depth as the Tropical (red) box.
+    box_sect = {"South": dict(
+        lat_min=-90.0, lat_max=-50.0,
+        lon_min=BOXES["Trop"]["lon_min"], lon_max=BOXES["Trop"]["lon_max"],
+        depth_max=BOXES["Trop"]["depth_max"],
+        color=BOX_COLOR_SOUTH, label="compensation",
+    )}
+    box_sect.update(box_sect_natrop)   # South first so NA/Trop draw on top
     ax = axes_top[0]
     setup_globe(ax)
-    draw_boxes_fine_grid(ax, BOXES_GLOBE)
-    ax.set_title("Box model regions (Wood et al.)", fontsize=8, fontweight="bold")
-    add_panel_label(ax, panel_labels_top[0])
+    draw_box_model_globe(ax, box_globe_natrop)
+    ax.set_title("3-box model", fontsize=FS_TITLE, fontweight="bold")
+    add_panel_label(ax, panel_labels_top[0], fontsize=FS_PANEL)
 
     ax = axes_bot[0]
-    draw_section(ax, BOXES, taper=False, depth_max_plot=2000, label_depths=False,
-                 depth_lines=False, lat_lines=False)
-    ax.set_ylabel("Depth (m)", fontsize=8)
-    ax.set_title("Meridional section (28°W)", fontsize=8)
-    add_panel_label(ax, panel_labels_bot[0], y=0.04, va="bottom")
+    draw_section(ax, box_sect, taper=False, depth_max_plot=2000, label_depths=False,
+                 depth_lines=False, lat_lines=False, box_limits="trace")
+    ax.set_ylabel("Depth (m)", fontsize=FS_LABEL)
+    add_panel_label(ax, panel_labels_bot[0], y=0.04, va="bottom", fontsize=FS_PANEL)
 
     # ── Column 2: Boussinesq context ──────────────────────────────────────
     ax = axes_top[1]
     setup_globe(ax)
     draw_section_strip_projected(ax, BOXES_BOUS_NARROW)   # constant-width strip → 2-D cross-section
-    ax.set_title("Regions corresponding to Boussinesq model boxes", fontsize=8,
-                 fontweight="bold")
-    add_panel_label(ax, panel_labels_top[1])
+    ax.set_title("Boussinesq model", fontsize=FS_TITLE, fontweight="bold")
+    add_panel_label(ax, panel_labels_top[1], fontsize=FS_PANEL)
 
     ax = axes_bot[1]
     draw_boussinesq_panel(ax)
-    ax.set_title("Boussinesq 2D tapered perturbation", fontsize=8)
-    add_panel_label(ax, panel_labels_bot[1], y=0.04, va="bottom")
+    add_panel_label(ax, panel_labels_bot[1], y=0.04, va="bottom", fontsize=FS_PANEL)
 
     # ── Column 3: CLIMBER-X ───────────────────────────────────────────────
-    # Atlantic-mask boxes box_na / box_trop / box_south (top 4 layers, 0–105 m);
-    # NA & Trop follow the Atlantic basin mask, tapered in latitude only.
+    # Atlantic-mask perturbation boxes box_na / box_trop (top 4 layers, 0–105 m),
+    # tapered in latitude only; the compensating anomaly is spread over the entire
+    # rest of the world ocean (global salt compensation), shown as the green
+    # rest-of-ocean region rather than a discrete Southern box.
     ax = axes_top[2]
     setup_globe(ax)
-    draw_boxes_on_globe(ax, BOXES_CLIMBERX, taper=True)
-    ax.set_title("CLIMBER-X model boxes", fontsize=8, fontweight="bold")
-    add_panel_label(ax, panel_labels_top[2])
+    draw_climberx_globe(ax)
+    ax.set_title("CLIMBER-X", fontsize=FS_TITLE, fontweight="bold")
+    add_panel_label(ax, panel_labels_top[2], fontsize=FS_PANEL)
 
     ax = axes_bot[2]
-    draw_section(ax, BOXES_CLIMBERX, taper=True, depth_max_plot=300, label_depths=True,
-                 box_limits=True)
-    ax.set_ylabel("Depth (m)", fontsize=8)
-    ax.set_title("Meridional section (28°W)", fontsize=8)
-    add_panel_label(ax, panel_labels_bot[2], y=0.04, va="bottom")
+    draw_climberx_section(ax, depth_max_plot=300)
+    ax.set_ylabel("Depth (m)", fontsize=FS_LABEL)
+    add_panel_label(ax, panel_labels_bot[2], y=0.04, va="bottom", fontsize=FS_PANEL)
 
     # ── Column 4: PlaSim ──────────────────────────────────────────────────
-    # CLIMBER-X boxes re-created on the PlaSim 2.5° / 22-level grid (no taper),
-    # deep configuration (default in the analysis pipeline): NA & Trop follow the
-    # Atlantic basin (NA 0–1000 m, Trop 0–500 m), South is global (0–100 m).
+    # Deep readout boxes on the PlaSim 2.5° / 22-level grid (no taper): NA & Trop
+    # follow the Atlantic basin (NA 0–1000 m, Trop 0–500 m).  The analysis is
+    # purely two-dimensional (NA, Tropical readouts); there is no Southern box.
+    plasim_natrop = {k: v for k, v in BOXES_PLASIM.items() if k != "South"}
     ax = axes_top[3]
     setup_globe(ax)
-    draw_plasim_boxes_globe(ax, BOXES_PLASIM)
-    ax.set_title("PlaSim model boxes", fontsize=8, fontweight="bold")
-    add_panel_label(ax, panel_labels_top[3])
+    draw_plasim_boxes_globe(ax, plasim_natrop)
+    ax.set_title("PlaSim-LSG", fontsize=FS_TITLE, fontweight="bold")
+    add_panel_label(ax, panel_labels_top[3], fontsize=FS_PANEL)
 
     ax = axes_bot[3]
-    draw_plasim_section(ax, BOXES_PLASIM, depth_max_plot=1000)
-    ax.set_title("Meridional section (zonal mean)", fontsize=8)
-    ax.set_xlabel("Latitude", fontsize=8)
-    add_panel_label(ax, panel_labels_bot[3], y=0.04, va="bottom")
+    draw_plasim_section(ax, plasim_natrop, depth_max_plot=1000, fill=False,
+                        label_depths=False)
+    ax.set_xlabel("Latitude", fontsize=FS_LABEL)
+    add_panel_label(ax, panel_labels_bot[3], y=0.04, va="bottom", fontsize=FS_PANEL)
 
-    # ── Shared y-axis for bottom panels e, f, g (depth 0–1000 m) ──────────
-    for ax in axes_bot[:3]:
-        ax.set_ylim(1000, 0)
+    # ── Shared y-axis for all bottom panels (depth axis, surface at top) ──
+    for ax in axes_bot:
+        ax.set_ylim(1005, -5)
     # Only the leftmost panel (e) keeps the y-axis label and tick labels;
     # f, g, h suppress both.
     for ax in axes_bot[1:]:
         ax.set_ylabel("")
         ax.tick_params(labelleft=False)
 
-    # ── Central legend between the two rows ───────────────────────────────
+    # ── Legend at the bottom of the figure ────────────────────────────────
     legend_handles = [
-        mpatches.Patch(color=BOX_COLOR_NA,    alpha=0.75, label="North Atlantic Box"),
-        mpatches.Patch(color=BOX_COLOR_TROP,  alpha=0.75, label="Tropical Atlantic Box"),
-        mpatches.Patch(color=BOX_COLOR_SOUTH, alpha=0.75, label="Southern Ocean Box"),
+        mpatches.Patch(color=BOX_COLOR_NA,    alpha=0.75, label="North Atlantic box"),
+        mpatches.Patch(color=BOX_COLOR_TROP,  alpha=0.75, label="Tropical Atlantic box"),
+        mpatches.Patch(color=BOX_COLOR_SOUTH, alpha=0.75, label="Compensation region"),
     ]
     fig.legend(
         handles=legend_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.485),   # sits in the hspace gap between the rows
+        bbox_to_anchor=(0.5, 0.075),   # below the bottom row, under the x-axis labels
         ncol=3,
-        fontsize=8,
+        fontsize=FS_LEGEND,
         framealpha=0.9,
         edgecolor="#cccccc",
     )
 
     # ── Save as PNG ───────────────────────────────────────────────────────
+    # The shared style saves with bbox_inches="tight", which only trims outer
+    # whitespace, so the canvas stays ≈ FIG_WIDTH_IN wide.  The
+    # \includegraphics[width=\textwidth] scale factor is therefore ≈ 1 and the
+    # font points set above land on the page essentially as specified.
     out_path = PLOTS_DIR / "perturbations_overview.png"
-    fig.savefig(out_path, dpi=200, bbox_inches="tight")
+    fig.savefig(out_path, dpi=300)
     print(f"Figure saved: {out_path}")
     plt.close(fig)
 
