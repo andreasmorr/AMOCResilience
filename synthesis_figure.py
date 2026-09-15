@@ -114,7 +114,7 @@ PANELS = [
     (
         "minimal_critical_shock_magnitude",
         "min_critical_shock",
-        None,
+        "min_critical_shock",
         "mean_edge_dist",
         "Minimal critical shock",
         "Critical shock",
