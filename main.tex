@@ -77,7 +77,7 @@ Yet CSD-based indicators capture only the system's reaction to small perturbatio
 
 In natural systems, controlled perturbation experiments are rarely feasible, making direct estimation of non-local resilience quantities from observations difficult. This is especially true for the AMOC, and numerical models, therefore, play an essential role. However, climate models span an enormous range of complexity, from analytically tractable conceptual models to full Earth system models (ESMs), and it is not obvious whether resilience metrics computed in simple models translate to their more complex counterparts, which include many additional feedbacks and degrees of freedom \citep{Stouffer2006InvestigatingCausesAMOC, Schneider2017EarthSystemModeling}. If metrics disagree across the hierarchy, it could mean that parts of the hierarchy do not expose them well. The extrapolation of findings on these metrics from models to the real-world system is then harder to justify. Several studies have examined individual resilience concepts in the context of the AMOC at specific levels of model complexity \citep{Rahmstorf2005AMOCHystersis, Cimatoribus2014AMOCBoxModel, Boers2021AMOCEWS, Ditlevsen2023AMOCPrediction, Jacques-Dumas2024RareEventResilience}, but a systematic, multi-metric comparison across a model hierarchy is lacking.
 
-Our analysis combines four modelling studies that span many orders of magnitude of model complexity: (i) a conceptual 3-box salinity model \citep{Wood20195BoxModel, Alkhayuon2019AMOCRateTipping}, (ii) a latitude-depth Boussinesq partial differential equation model \citep{Esclapez2026ConstructingEfficientScore}, (iii) the Earth system model of intermediate complexity CLIMBER-X \citep{Willeit2022EarthSystemModel}, and (iv) the coupled general circulation model PlaSim-LSG \citep{Borner2026GlobalStabilityAtlantic}. Section~\ref{sec:methods} describes each model and the resilience metrics computed for it. Section~\ref{sec:results} reports the individual model's results and Section~\ref{sec:discussion} synthesises them across the hierarchy. In Section~\ref{sec:outlook}, we discuss implications for research on the AMOC and on early-warning detection of potential tipping.
+Our analysis combines four modelling studies that span many orders of magnitude of model complexity: (i) a conceptual 3-box salinity model \citep{Wood20195BoxModel, Alkhayuon2019AMOCRateTipping}, (ii) a latitude-depth Boussinesq partial differential equation model \citep{Esclapez2026ConstructingEfficientScore}, (iii) the Earth system model of intermediate complexity CLIMBER-X \citep{Willeit2022EarthSystemModel}, and (iv) the coupled general circulation model PlaSim-LSG \citep{Borner2026GlobalStabilityAtlantic}. Section~\ref{sec:methods} describes each model and the resilience metrics computed for it. Section~\ref{sec:results} reports the individual model's results and Section~\ref{sec:discussion} synthesises them across the hierarchy. In Section~\ref{sec:discussion}, we discuss implications for research on the AMOC and on early-warning detection of potential tipping.
 
 \section{Methods}
 \label{sec:methods}
@@ -179,14 +179,13 @@ Throughout, we report salinities in \psu{} and the overturning strength in Sverd
 
 CLIMBER-X \citep{Willeit2022EarthSystemModel} is a fast Earth system model of intermediate complexity (EMIC) that couples a 3-D ocean general circulation model, an energy-balance atmosphere, a thermodynamic sea-ice model, and land-surface components. The ocean component resolves the full three-dimensional salinity and temperature fields, including the main overturning circulation cells, at a resolution of approximately $5°\times 5°$ with 23 vertical levels. CLIMBER-X is computationally efficient enough to permit multi-millennial integrations, making it well-suited for exploring the state space through moderately sized perturbation ensembles.
 
-We first equilibrate CLIMBER-X at 15 prescribed atmospheric \CO{} concentrations between 285 and $600\,\text{ppm}$: 285, 300, 315, 330, 345, 360, 385, 400, 430, 460, 490, 510, 540, 570, and $600\,\text{ppm}$. Each equilibrium run is integrated for up to $20\,000$ model years from the default pre-industrial restart. After equilibration, the trailing $500$ years of the annual ocean time series are used to store reference values for AMOC strength at $26°\text{N}$ and for the salinity diagnostics in the geographical boxes illustrated in Fig.~\ref{fig:perturbations-overview}.
+We first equilibrate CLIMBER-X at 15 prescribed atmospheric \CO{} concentrations between 285 and $600\,\text{ppm}$. Each equilibrium run is integrated for up to $20\,000$ model years from the default pre-industrial restart. After equilibration, the trailing $500$ years of the annual ocean time series are used to store reference values for AMOC strength at $26°\text{N}$ and for the salinity diagnostics in the geographical boxes illustrated in Fig.~\ref{fig:perturbations-overview}.
 
 The North Atlantic box comprises Atlantic-basin grid cells from $35°$--$80°\text{N}$ and the Tropical Atlantic box comprises Atlantic-basin cells from $35°\text{S}$--$35°\text{N}$. Both boxes cover the upper $105\,\text{m}$, corresponding to the top four ocean layers. The North and Tropical box perturbations use a two-grid-cell latitudinal taper and a two-layer vertical cosine taper. The tapered fields are normalised so that the volume-weighted mean anomaly over the hard target box remains exactly equal to the prescribed salinity perturbation. The salt added to the two Atlantic boxes is compensated uniformly over the rest of the world ocean, so that the global ocean salt content in the restart is conserved. 
 
-For our experiments, we apply instantaneous salinity perturbations to these boxes directly to the ocean restart as salinity anomalies in \psu{}, creating an ensemble of modified initial conditions. The North Atlantic and Tropical Atlantic perturbations each take the values $-2,-1.5,\ldots,2\psu{}$, giving a $9\times9$ grid of 81 experiments per \CO{} level. Each perturbed initial condition is integrated forward for $10\,000$ model years. This model is known to exhibit an AMOC off-state under high \CO{} concentrations when large constant freshwater forcing in the North Atlantic is applied. In the present setup of pure initial salinity perturbations, the off-state is not reached. Instead, at higher \CO{} a second, distinct attractor with a somewhat stronger AMOC emerges. We classify each grid trajectory by its final state using the same criterion as for the Bussinesq model: a run is assigned to the on-state if its final salinities lie within an $\varepsilon=0.05\,\psu{}$ ball of the unperturbed reference state, and to the ``strong'' state otherwise. 
+For our experiments, we apply instantaneous salinity perturbations to these boxes directly to the ocean restart as salinity anomalies in \psu{}, creating an ensemble of modified initial conditions. The North Atlantic and Tropical Atlantic perturbations each take the values $-2,-1.5,\ldots,2\psu{}$, giving a $9\times9$ grid of 81 experiments per \CO{} level. Each perturbed initial condition is integrated forward for $10\,000$ model years. This model is known to exhibit an AMOC off-state under high \CO{} concentrations when large constant freshwater forcing in the North Atlantic is applied. In the present setup of pure initial salinity perturbations, the off-state is not reached. Instead, at higher \CO{} a second, distinct attractor with a somewhat stronger AMOC emerges. This occurs when sea ice in the northern hemisphere retreats and the deep-water convection driving the AMOC expands into areas farther north. We classify each grid trajectory by its final state using the same criterion as for the Bussinesq model: a run is assigned to the on-state if its final salinities lie within an $\varepsilon=0.05\,\psu{}$ ball of the unperturbed reference state, and to the ``strong'' state otherwise. 
 
 A further \CO{}-dependence concerns the long equilibration run itself: the state on which it settles, and which serves as the unperturbed reference, changes branch with forcing. Up to $330\,\text{ppm}$ it lies on the reference (``modern'') branch, whereas from $345\,\text{ppm}$ onward it lies on the stronger-AMOC (``strong'') branch. The resilience measures obtained from the perturbation experiments are therefore associated with the modern state at $285$--$330\,\text{ppm}$ and with the strong state at $345$--$600\,\text{ppm}$. The basin volume reported for CLIMBER-X (Table~\ref{tab:overview}) is the share of the 81 grid trajectories that return to this reference equilibrium; it equals one wherever all perturbations recover and falls below one only near the modern-branch transition (at $315$ and $330\,\text{ppm}$), where a fraction of perturbations settle on the strong state instead. From the same grid we obtain the minimal critical shock as the smallest salinity-plane distance from the reference equilibrium to a perturbed initial condition that does not return to its basin; it is a grid-resolution-limited upper bound and is defined only where at least one perturbation escapes, i.e.\ at $315$ and $330\,\text{ppm}$, since at all other \CO{} levels the entire $\pm2\psu{}$ grid recovers. Figure \ref{fig:climberx-paper} shows four example trajectories starting from perturbed salinity initial conditions in the specified boxes, similar to the two figures above. For both \CO{} values, the equilibrium states are the modern state.
-
 
 To estimate local linear stability, we run a second, smaller ensemble of $9$ experiments per \CO{} level. Eight runs apply isotropic salinity perturbations of magnitude $\varepsilon = 0.1\,\psu{}$ again arranged on a circle in the two-dimensional (NA, Tropical) shallow-box salinity space, plus one unperturbed reference run. Each run is integrated for $500$ model years. An equilibrium reference is obtained from the mean of the unperturbed run over years 10--150. A $2\times2$ discrete linear map is fitted by least squares to annual trajectory pairs $(x_t,x_{t+1})$ in the same fitting window. The continuous-time generator $A=\log(M)/(1\,\text{yr})$ yields eigenvalues whose least stable real part gives the local resilience $-\mathrm{Re}(\lambda_{\max})$.
 
@@ -221,14 +220,13 @@ We reduce the high-dimensional PlaSim-LSG salinity output to the salinity of two
 \section{Results}
 \label{sec:results}
 
-\begin{figure}[p]
+\begin{figure}[t]
   \centering
   \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{synthesis_figure.png}
   \caption{\textbf{Cross-model synthesis of AMOC resilience metrics.}
   Resilience quantifiers are plotted against the \CO{} coordinate for each model, where available. The model-specific definitions and implementation of each resilience quantifier are given in Table \ref{tab:overview}. These results provide the basis for assessing which resilience signals are coherent across the model hierarchy.}
   \label{fig:synthesis}
 \end{figure}
-\FloatBarrier
 
 \section{Discussion}
 \label{sec:discussion}
@@ -287,7 +285,7 @@ The model represents a two-dimensional meridional cross-section of the ocean at 
 \end{equation}
 where $u$ is the horizontal (meridional) velocity and $w$ is the vertical velocity. The vorticity is $\omega = -\nabla^2\psi$. The non-dimensional base parameters and numerical resolution are given in Table~\ref{tab:boussinesq-params}; the salinity asymmetry is changed between spin-up and perturbed integrations as described below.
 
-\begin{table}[h]
+\begin{table}[t]
   \centering
   \caption{Default non-dimensional parameters for the Boussinesq model.}
   \label{tab:boussinesq-params}
@@ -381,10 +379,10 @@ A spin-up with weak hemispheric asymmetry $\beta_s=0.1$ seeds the symmetric-forc
 Model salinities are mapped to practical salinity units by the affine calibration $S\,[\psu{}]=10.72735\,s+25.45555$, fixed by requiring the North Atlantic and Tropical boxes of the pre-industrial ($\gamma=0$, $\beta_s=0.1$) equilibrium to match $35.0$ and $36.5\psu{}$; the $\pm2\psu{}$ perturbation grid therefore corresponds to approximately $\pm0.18644$ model units. Likewise, the overturning streamfunction is converted to Sverdrups by anchoring the pre-industrial equilibrium value $\psi_0\approx1.517$ model units to $18\Sv{}$, giving a factor of approximately $11.864\Sv{}/\psi_\text{model}$. Convergence and characteristic return times are multiplied by 100 to obtain the year-proxy scale used in the synthesis, and local resilience is divided by 100 to obtain inverse year-proxy units.
 
 \section{Specifics on the CLIMBER-X model}
-\label{app:regions}
+\label{app:climber-x}
 
 \section{Specifics on the PlaSim-LSG model}
-\label{app:eof}
+\label{app:plasim}
 
 
 
