@@ -1,6 +1,15 @@
 """
 synthesis_figure.py  –  Cross-model AMOC resilience vs CO2 figure.
 
+Layout: 2 columns × 3 rows.  Top row holds the two model-state panels —
+(a) AMOC strength and (b) North Atlantic equilibrium salinity of the northern
+readout box — and the four resilience-measure panels (c)–(f) fill the lower two
+rows.  The three panels in each column share a CO2 x-axis.
+
+North Atlantic equilibrium salinity sources: Boussinesq and CLIMBER-X carry it
+as the "na_salinity" measure in their resilience CSVs; the box model and PlaSim
+expose it in per-CO2 auxiliary files (attractors_*.csv / state_means_*.csv).
+
 Reads:
     AMOCBox/data/paper/resilience_vs_co2_boxmodel.csv
         columns: co2_ppm, t_param, measure, value, attractor
@@ -23,6 +32,7 @@ Run from the AMOCResilience umbrella directory:
 """
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -183,6 +193,57 @@ def load_climberx() -> pd.DataFrame | None:
 
 
 # ---------------------------------------------------------------------------
+# North Atlantic equilibrium salinity (northern readout box), per model.
+# Box and PlaSim expose it in per-CO2 auxiliary files; Boussinesq and CLIMBER-X
+# carry it as the "na_salinity" measure in their resilience CSVs (loaded above),
+# so those two need no separate loader — they are plotted through _plot_panel.
+# ---------------------------------------------------------------------------
+
+BOX_PAPER_DIR    = UMBRELLA / "AMOCBox"    / "data" / "paper"
+PLASIM_PAPER_DIR = UMBRELLA / "AMOCPlaSim" / "data" / "results" / "paper"
+
+
+def load_box_na_salinity() -> pd.DataFrame | None:
+    """On-state North Atlantic salinity (psu) vs CO2 from the box attractors files.
+
+    Returned in the long schema (co2_ppm, measure='na_salinity', value, attractor)
+    so it can be plotted through _plot_panel as the box-model series.  Box salinity
+    is stored in model units; psu = 35 + 10 * S_N (matching plotting_paper.py)."""
+    rows = []
+    for f in sorted(BOX_PAPER_DIR.glob("attractors_*ppm.csv")):
+        m = re.search(r"attractors_(\d+)ppm", f.name)
+        if not m:
+            continue
+        d = pd.read_csv(f)
+        on = d[d["state"] == "on"]
+        if on.empty:
+            continue
+        s_n = float(on["S_N"].iloc[0])
+        rows.append(dict(co2_ppm=float(m.group(1)), measure="na_salinity",
+                         value=35.0 + 10.0 * s_n, attractor="on"))
+    return pd.DataFrame(rows) if rows else None
+
+
+def load_plasim_na_salinity() -> pd.DataFrame | None:
+    """On-state North Atlantic salinity (psu) vs CO2 from the PlaSim state-means files.
+
+    Returned in the wide schema (co2_ppm, state='AMOC-on', na_salinity) so it can be
+    plotted through _plot_panel as the PlaSim series.  x1 is already in psu."""
+    rows = []
+    for f in sorted(PLASIM_PAPER_DIR.glob("state_means_*ppm.csv")):
+        m = re.search(r"state_means_(\d+)ppm", f.name)
+        if not m:
+            continue
+        d = pd.read_csv(f)
+        on = d[d["state"] == "on"]
+        if on.empty:
+            continue
+        rows.append(dict(co2_ppm=float(m.group(1)), state="AMOC-on",
+                         na_salinity=float(on["x1"].iloc[0])))
+    return pd.DataFrame(rows) if rows else None
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -295,24 +356,27 @@ def main() -> None:
         print("No data available for synthesis figure. Generate model data first.")
         sys.exit(1)
 
+    # North Atlantic equilibrium salinity series for the box and PlaSim models
+    # (Boussinesq and CLIMBER-X carry it in their resilience CSVs already).
+    box_sal_df    = load_box_na_salinity()
+    plasim_sal_df = load_plasim_na_salinity()
+
     # ── Build figure ─────────────────────────────────────────────────────────
-    # Layout: AMOC strength spans full width (top row),
-    # then 2×2 grid for the four resilience measure panels.
-    # Column pairs share x-axes: (b,d) left column, (c,e) right column.
+    # Layout: 2 columns × 3 rows.  Top row holds the two model-state panels —
+    # (a) AMOC strength and (b) North Atlantic equilibrium salinity — and the
+    # four resilience-measure panels (c)–(f) fill the two lower rows.  The three
+    # panels in each column share an x-axis (CO2 concentration).
     from matplotlib.gridspec import GridSpec
 
     ncols = 2
-    n_res_panels = len(PANELS)               # 4
-    n_res_rows   = (n_res_panels + 1) // ncols  # 2
-    nrows_total  = 1 + n_res_rows            # 3
+    nrows_total = 3
 
-    fig = plt.figure(figsize=(FIGURE_WIDTH, 1.6 + 1.5 * n_res_rows),
-                     constrained_layout=True)
+    fig = plt.figure(figsize=(FIGURE_WIDTH, 5.4), constrained_layout=True)
     gs  = GridSpec(nrows_total, ncols, figure=fig,
-                   height_ratios=[1.0] + [1.0] * n_res_rows)
+                   height_ratios=[1.0, 1.0, 1.0])
 
-    # Top panel – AMOC strength
-    ax_amoc = fig.add_subplot(gs[0, :])
+    # ── Top row: AMOC strength (a) and NA salinity (b) ───────────────────────
+    ax_amoc = fig.add_subplot(gs[0, 0])
     _plot_panel(
         ax_amoc,
         *AMOC_PANEL,
@@ -321,18 +385,29 @@ def main() -> None:
     )
     add_panel_label(ax_amoc, "(a)", x=0.99, ha="right")
 
-    # Resilience-measure panels – 2×2 grid with shared x-axes per column
-    panel_labels = ["(b)", "(c)", "(d)", "(e)"]
-    ax_panels: list = [None] * n_res_panels
+    ax_sal = fig.add_subplot(gs[0, 1])
+    _plot_panel(
+        ax_sal,
+        "na_salinity", "na_salinity", "na_salinity", "na_salinity",
+        "NA salinity (psu)", "NA salinity",
+        box_sal_df, plasim_sal_df, df_boussinesq, df_climberx,
+        xlabel=False,
+    )
+    add_panel_label(ax_sal, "(b)", x=0.99, ha="right")
+
+    # Hide the top-row tick labels; the shared x-axis is labelled on the bottom row.
+    col_top = {0: ax_amoc, 1: ax_sal}
+    for ax in col_top.values():
+        plt.setp(ax.get_xticklabels(), visible=False)
+
+    # ── Rows 1-2: the four resilience-measure panels, shared x per column ─────
+    panel_labels = ["(c)", "(d)", "(e)", "(f)"]
     for panel_idx, (box_measure, bous_measure, cx_measure, plasim_col, ylabel, panel_title) in enumerate(PANELS):
         row = 1 + panel_idx // ncols
         col = panel_idx % ncols
         is_bottom_row = (row == nrows_total - 1)
 
-        # share x with the top panel in the same column
-        sharex_ax = ax_panels[col] if ax_panels[col] is not None else None
-        ax = fig.add_subplot(gs[row, col], sharex=sharex_ax)
-        ax_panels[panel_idx] = ax
+        ax = fig.add_subplot(gs[row, col], sharex=col_top[col])
 
         _plot_panel(
             ax,
