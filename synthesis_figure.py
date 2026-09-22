@@ -249,12 +249,20 @@ def load_plasim_na_salinity() -> pd.DataFrame | None:
 
 
 def _mark_line_end(ax, sub, color):
-    """Hollow circle at a line's last point, marking where the on-state vanishes."""
+    """Hollow circle at a line's last point, marking where the on-state vanishes.
+
+    The marker is offset to the right by half its width (its radius) via a
+    points-based transform, so the shift is independent of the data scaling."""
     if sub is None or sub.empty:
         return
+    from matplotlib.transforms import offset_copy
+    marker_size = 45                      # points**2
+    dx_pt = (marker_size ** 0.5) / 2.0    # half the marker width (= radius), in points
+    trans = offset_copy(ax.transData, fig=ax.figure, x=dx_pt, y=0.0, units="points")
     ax.scatter(
         [sub["co2_ppm"].values[-1]], [sub["value"].values[-1]],
-        facecolors="none", edgecolors=color, s=45, linewidths=1.3, zorder=6,
+        facecolors="none", edgecolors=color, s=marker_size, linewidths=1.3,
+        zorder=6, transform=trans,
     )
 
 
