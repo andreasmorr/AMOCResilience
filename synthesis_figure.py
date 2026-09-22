@@ -264,8 +264,8 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
     """Plot a single resilience-measure panel onto *ax*.
 
     When *mark_line_ends* is True, a hollow circle is drawn at the final point of
-    the 3-box and Boussinesq lines to signify that the stable on-state vanishes
-    there (the continuation is terminated by an AMOC-on bifurcation)."""
+    the 3-box line to signify that the stable on-state vanishes there (the
+    continuation is terminated by an AMOC-on bifurcation)."""
 
     # ── Box model line ────────────────────────────────────────────────────
     # Drop the last (highest-CO2) box-model point in each panel via .iloc[:-1].
@@ -334,8 +334,6 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
                 label="Boussinesq",
                 zorder=3,
             )
-            if mark_line_ends:
-                _mark_line_end(ax, sub_b, COL_BOUS)
 
     # ── CLIMBER-X: two broken series ─────────────────────────────────────
     # The long-equilibrium AMOC state changes branch with CO2: it is the
