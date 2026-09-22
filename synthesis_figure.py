@@ -393,6 +393,9 @@ def main() -> None:
         box_sal_df, plasim_sal_df, df_boussinesq, df_climberx,
         xlabel=False,
     )
+    # Cap the salinity axis at 36 psu (the box model's on-state salinity runs
+    # off to ~37.7 psu at high CO2, which would otherwise compress all models).
+    ax_sal.set_ylim(top=36.0)
     add_panel_label(ax_sal, "(b)", x=0.99, ha="right")
 
     # Hide the top-row tick labels; the shared x-axis is labelled on the bottom row.
