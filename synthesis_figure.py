@@ -248,10 +248,24 @@ def load_plasim_na_salinity() -> pd.DataFrame | None:
 # ---------------------------------------------------------------------------
 
 
+def _mark_line_end(ax, sub, color):
+    """Hollow circle at a line's last point, marking where the on-state vanishes."""
+    if sub is None or sub.empty:
+        return
+    ax.scatter(
+        [sub["co2_ppm"].values[-1]], [sub["value"].values[-1]],
+        facecolors="none", edgecolors=color, s=45, linewidths=1.3, zorder=6,
+    )
+
+
 def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
                 ylabel, panel_title, df_box, df_plasim, df_boussinesq, df_climberx,
-                xlabel=False):
-    """Plot a single resilience-measure panel onto *ax*."""
+                xlabel=False, mark_line_ends=False):
+    """Plot a single resilience-measure panel onto *ax*.
+
+    When *mark_line_ends* is True, a hollow circle is drawn at the final point of
+    the 3-box and Boussinesq lines to signify that the stable on-state vanishes
+    there (the continuation is terminated by an AMOC-on bifurcation)."""
 
     # ── Box model line ────────────────────────────────────────────────────
     # Drop the last (highest-CO2) box-model point in each panel via .iloc[:-1].
@@ -270,6 +284,8 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
                 label="3-box model",
                 zorder=2,
             )
+            if mark_line_ends:
+                _mark_line_end(ax, sub, COL_ON)
         else:
             # Try without attractor filter (e.g. amoc_strength_sv)
             sub_all = df_box[df_box["measure"] == box_measure].sort_values("co2_ppm").iloc[:-1]
@@ -282,6 +298,8 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
                     label="3-box model",
                     zorder=2,
                 )
+                if mark_line_ends:
+                    _mark_line_end(ax, sub_all, COL_ON)
 
     # ── PlaSim points ─────────────────────────────────────────────────────
     if df_plasim is not None and plasim_col is not None and plasim_col in df_plasim.columns:
@@ -316,6 +334,8 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
                 label="Boussinesq",
                 zorder=3,
             )
+            if mark_line_ends:
+                _mark_line_end(ax, sub_b, COL_BOUS)
 
     # ── CLIMBER-X: two broken series ─────────────────────────────────────
     # The long-equilibrium AMOC state changes branch with CO2: it is the
@@ -382,6 +402,7 @@ def main() -> None:
         *AMOC_PANEL,
         df_box, df_plasim, df_boussinesq, df_climberx,
         xlabel=False,
+        mark_line_ends=True,
     )
     add_panel_label(ax_amoc, "(a)", x=0.99, ha="right")
 
