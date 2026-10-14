@@ -2,13 +2,14 @@
 synthesis_figure.py  –  Cross-model AMOC resilience vs CO2 figure.
 
 Layout: 2 columns × 3 rows.  Top row holds the two model-state panels —
-(a) AMOC strength and (b) North Atlantic equilibrium salinity of the northern
-readout box — and the four resilience-measure panels (c)–(f) fill the lower two
-rows.  The three panels in each column share a CO2 x-axis.
+(a) AMOC strength and (b) the Tropical−Northern equilibrium salinity gradient
+between the two readout boxes — and the four resilience-measure panels (c)–(f)
+fill the lower two rows.  The three panels in each column share a CO2 x-axis.
 
-North Atlantic equilibrium salinity sources: Boussinesq and CLIMBER-X carry it
-as the "na_salinity" measure in their resilience CSVs; the box model and PlaSim
-expose it in per-CO2 auxiliary files (attractors_*.csv / state_means_*.csv).
+Salinity-gradient sources: Boussinesq and CLIMBER-X carry it as the
+"salinity_gradient" measure in their resilience CSVs; the box model and PlaSim
+expose both readout boxes in per-CO2 auxiliary files (attractors_*.csv /
+state_means_*.csv), from which the gradient is computed here.
 
 Reads:
     AMOCBox/data/paper/resilience_vs_co2_boxmodel.csv
@@ -193,22 +194,25 @@ def load_climberx() -> pd.DataFrame | None:
 
 
 # ---------------------------------------------------------------------------
-# North Atlantic equilibrium salinity (northern readout box), per model.
-# Box and PlaSim expose it in per-CO2 auxiliary files; Boussinesq and CLIMBER-X
-# carry it as the "na_salinity" measure in their resilience CSVs (loaded above),
-# so those two need no separate loader — they are plotted through _plot_panel.
+# Tropical−Northern equilibrium salinity gradient (between the two readout
+# boxes), per model.  Box and PlaSim expose both boxes in per-CO2 auxiliary
+# files (gradient computed here); Boussinesq and CLIMBER-X carry it as the
+# "salinity_gradient" measure in their resilience CSVs (loaded above), so those
+# two need no separate loader — they are plotted through _plot_panel.
 # ---------------------------------------------------------------------------
 
 BOX_PAPER_DIR    = UMBRELLA / "AMOCBox"    / "data" / "paper"
 PLASIM_PAPER_DIR = UMBRELLA / "AMOCPlaSim" / "data" / "results" / "paper"
 
 
-def load_box_na_salinity() -> pd.DataFrame | None:
-    """On-state North Atlantic salinity (psu) vs CO2 from the box attractors files.
+def load_box_salinity_gradient() -> pd.DataFrame | None:
+    """On-state Tropical−Northern salinity gradient (psu) vs CO2 from box attractors.
 
-    Returned in the long schema (co2_ppm, measure='na_salinity', value, attractor)
-    so it can be plotted through _plot_panel as the box-model series.  Box salinity
-    is stored in model units; psu = 35 + 10 * S_N (matching plotting_paper.py)."""
+    Returned in the long schema (co2_ppm, measure='salinity_gradient', value,
+    attractor) so it can be plotted through _plot_panel as the box-model series.
+    Box salinity is stored in model units; psu = 35 + 10 * S (matching
+    plotting_paper.py), so the +35 offset cancels in the difference and the
+    gradient is 10 * (S_T − S_N)."""
     rows = []
     for f in sorted(BOX_PAPER_DIR.glob("attractors_*ppm.csv")):
         m = re.search(r"attractors_(\d+)ppm", f.name)
@@ -219,16 +223,18 @@ def load_box_na_salinity() -> pd.DataFrame | None:
         if on.empty:
             continue
         s_n = float(on["S_N"].iloc[0])
-        rows.append(dict(co2_ppm=float(m.group(1)), measure="na_salinity",
-                         value=35.0 + 10.0 * s_n, attractor="on"))
+        s_t = float(on["S_T"].iloc[0])
+        rows.append(dict(co2_ppm=float(m.group(1)), measure="salinity_gradient",
+                         value=10.0 * (s_t - s_n), attractor="on"))
     return pd.DataFrame(rows) if rows else None
 
 
-def load_plasim_na_salinity() -> pd.DataFrame | None:
-    """On-state North Atlantic salinity (psu) vs CO2 from the PlaSim state-means files.
+def load_plasim_salinity_gradient() -> pd.DataFrame | None:
+    """On-state Tropical−Northern salinity gradient (psu) vs CO2 from PlaSim state-means.
 
-    Returned in the wide schema (co2_ppm, state='AMOC-on', na_salinity) so it can be
-    plotted through _plot_panel as the PlaSim series.  x1 is already in psu."""
+    Returned in the wide schema (co2_ppm, state='AMOC-on', salinity_gradient) so it
+    can be plotted through _plot_panel as the PlaSim series.  x1 (Northern) and x2
+    (Tropical) are already in psu, so the gradient is x2 − x1."""
     rows = []
     for f in sorted(PLASIM_PAPER_DIR.glob("state_means_*ppm.csv")):
         m = re.search(r"state_means_(\d+)ppm", f.name)
@@ -239,7 +245,7 @@ def load_plasim_na_salinity() -> pd.DataFrame | None:
         if on.empty:
             continue
         rows.append(dict(co2_ppm=float(m.group(1)), state="AMOC-on",
-                         na_salinity=float(on["x1"].iloc[0])))
+                         salinity_gradient=float(on["x2"].iloc[0]) - float(on["x1"].iloc[0])))
     return pd.DataFrame(rows) if rows else None
 
 
@@ -251,14 +257,15 @@ def load_plasim_na_salinity() -> pd.DataFrame | None:
 def _mark_line_end(ax, sub, color):
     """Hollow circle at a line's last point, marking where the on-state vanishes.
 
-    The marker is offset to the right by half its width (its radius) via a
-    points-based transform, so the shift is independent of the data scaling."""
+    The marker is offset to the right by half its width (its radius) and down by
+    half its diameter (its radius) via a points-based transform, so the shift is
+    independent of the data scaling."""
     if sub is None or sub.empty:
         return
     from matplotlib.transforms import offset_copy
     marker_size = 45                      # points**2
     dx_pt = (marker_size ** 0.5) / 2.0    # half the marker width (= radius), in points
-    trans = offset_copy(ax.transData, fig=ax.figure, x=dx_pt, y=0.0, units="points")
+    trans = offset_copy(ax.transData, fig=ax.figure, x=dx_pt, y=-dx_pt, units="points")
     ax.scatter(
         [sub["co2_ppm"].values[-1]], [sub["value"].values[-1]],
         facecolors="none", edgecolors=color, s=marker_size, linewidths=1.3,
@@ -268,20 +275,26 @@ def _mark_line_end(ax, sub, color):
 
 def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
                 ylabel, panel_title, df_box, df_plasim, df_boussinesq, df_climberx,
-                xlabel=False, mark_line_ends=False):
+                xlabel=False, mark_line_ends=False, box_drop_n=1):
     """Plot a single resilience-measure panel onto *ax*.
 
     When *mark_line_ends* is True, a hollow circle is drawn at the final point of
     the 3-box line to signify that the stable on-state vanishes there (the
-    continuation is terminated by an AMOC-on bifurcation)."""
+    continuation is terminated by an AMOC-on bifurcation).
+
+    *box_drop_n* is the number of highest-CO2 box-model points omitted from that
+    panel: 1 drops the collapsed/off-branch terminal (e.g. the 910 ppm point in
+    AMOC strength), 0 shows every on-state point, and 2 truncates one step
+    earlier (used for convergence time, whose near-bifurcation values explode)."""
+
+    box_tail = slice(None, -box_drop_n) if box_drop_n > 0 else slice(None)
 
     # ── Box model line ────────────────────────────────────────────────────
-    # Drop the last (highest-CO2) box-model point in each panel via .iloc[:-1].
     if df_box is not None and box_measure is not None:
         sub = df_box[
             (df_box["measure"] == box_measure) &
             (df_box["attractor"] == "on")
-        ].sort_values("co2_ppm").iloc[:-1]
+        ].sort_values("co2_ppm").iloc[box_tail]
 
         if not sub.empty:
             ax.plot(
@@ -296,7 +309,7 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
                 _mark_line_end(ax, sub, COL_ON)
         else:
             # Try without attractor filter (e.g. amoc_strength_sv)
-            sub_all = df_box[df_box["measure"] == box_measure].sort_values("co2_ppm").iloc[:-1]
+            sub_all = df_box[df_box["measure"] == box_measure].sort_values("co2_ppm").iloc[box_tail]
             if not sub_all.empty:
                 ax.plot(
                     sub_all["co2_ppm"].values,
@@ -382,14 +395,14 @@ def main() -> None:
         print("No data available for synthesis figure. Generate model data first.")
         sys.exit(1)
 
-    # North Atlantic equilibrium salinity series for the box and PlaSim models
+    # Tropical−Northern salinity gradient series for the box and PlaSim models
     # (Boussinesq and CLIMBER-X carry it in their resilience CSVs already).
-    box_sal_df    = load_box_na_salinity()
-    plasim_sal_df = load_plasim_na_salinity()
+    box_sal_df    = load_box_salinity_gradient()
+    plasim_sal_df = load_plasim_salinity_gradient()
 
     # ── Build figure ─────────────────────────────────────────────────────────
     # Layout: 2 columns × 3 rows.  Top row holds the two model-state panels —
-    # (a) AMOC strength and (b) North Atlantic equilibrium salinity — and the
+    # (a) AMOC strength and (b) the Tropical−Northern salinity gradient — and the
     # four resilience-measure panels (c)–(f) fill the two lower rows.  The three
     # panels in each column share an x-axis (CO2 concentration).
     from matplotlib.gridspec import GridSpec
@@ -401,7 +414,7 @@ def main() -> None:
     gs  = GridSpec(nrows_total, ncols, figure=fig,
                    height_ratios=[1.0, 1.0, 1.0])
 
-    # ── Top row: AMOC strength (a) and NA salinity (b) ───────────────────────
+    # ── Top row: AMOC strength (a) and salinity gradient (b) ─────────────────
     ax_amoc = fig.add_subplot(gs[0, 0])
     _plot_panel(
         ax_amoc,
@@ -415,14 +428,12 @@ def main() -> None:
     ax_sal = fig.add_subplot(gs[0, 1])
     _plot_panel(
         ax_sal,
-        "na_salinity", "na_salinity", "na_salinity", "na_salinity",
-        "NA salinity (psu)", "NA salinity",
+        "salinity_gradient", "salinity_gradient", "salinity_gradient", "salinity_gradient",
+        "Salinity gradient (psu)", "Salinity gradient",
         box_sal_df, plasim_sal_df, df_boussinesq, df_climberx,
         xlabel=False,
+        box_drop_n=0,  # show through the terminal on-state step (903 ppm), like (a)
     )
-    # Cap the salinity axis at 36 psu (the box model's on-state salinity runs
-    # off to ~37.7 psu at high CO2, which would otherwise compress all models).
-    ax_sal.set_ylim(top=36.0)
     add_panel_label(ax_sal, "(b)", x=0.99, ha="right")
 
     # Hide the top-row tick labels; the shared x-axis is labelled on the bottom row.
@@ -431,6 +442,16 @@ def main() -> None:
         plt.setp(ax.get_xticklabels(), visible=False)
 
     # ── Rows 1-2: the four resilience-measure panels, shared x per column ─────
+    # How many trailing box-model points to omit per measure: local resilience,
+    # basin volume and critical shock show every on-state point through the
+    # terminal 903 ppm step (0); convergence time is truncated one step earlier
+    # (2) because its near-bifurcation values explode and compress the panel.
+    BOX_DROP_N = {
+        "local_resilience": 0,
+        "basin_stability": 0,
+        "minimal_critical_shock_magnitude": 0,
+        "mean_convergence_time": 2,
+    }
     panel_labels = ["(c)", "(d)", "(e)", "(f)"]
     for panel_idx, (box_measure, bous_measure, cx_measure, plasim_col, ylabel, panel_title) in enumerate(PANELS):
         row = 1 + panel_idx // ncols
@@ -445,6 +466,7 @@ def main() -> None:
             ylabel, panel_title,
             df_box, df_plasim, df_boussinesq, df_climberx,
             xlabel=is_bottom_row,
+            box_drop_n=BOX_DROP_N.get(box_measure, 1),
         )
         if not is_bottom_row:
             plt.setp(ax.get_xticklabels(), visible=False)
