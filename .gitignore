@@ -16,5 +16,7 @@ __pycache__/
 *.synctex.gz
 *.toc
 
-# Generated figures
-plots/
+# Generated figures (the two used in main.tex stay tracked)
+plots/*
+!plots/synthesis_figure.png
+!plots/perturbations_overview.png
