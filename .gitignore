@@ -18,5 +18,6 @@ __pycache__/
 
 # Generated figures (the two used in main.tex stay tracked)
 plots/*
+!plots/box_traj_315_10ky_gc_narrow.png
 !plots/synthesis_figure.png
 !plots/perturbations_overview.png

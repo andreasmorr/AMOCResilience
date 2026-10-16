@@ -1,0 +1,353 @@
+\documentclass[12pt, a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\DeclareUnicodeCharacter{00B0}{\ensuremath{^\circ}}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{natbib}
+\usepackage{xr-hyper}   % cross-references to the main text (must precede hyperref)
+\usepackage{hyperref}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{lineno}
+\usepackage{setspace}
+\usepackage{siunitx}
+\usepackage{cleveref}
+\usepackage{placeins}
+\usepackage{rotating}
+
+% Labels from the main manuscript (requires an up-to-date main.aux)
+\externaldocument{main}
+
+\doublespacing
+\linenumbers
+
+
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+\newcommand{\placeholder}[1]{\textcolor{gray}{\textit{#1}}}
+\newcommand{\Sv}{\,\text{Sv}}    % 1 Sv = 10^6 m^3/s
+\newcommand{\psu}{\,\text{psu}}
+\newcommand{\CO}{CO\ensuremath{_2}}
+\newcommand{\dint}{\mathrm{d}}
+
+% Supplementary numbering: S1, S2, ...
+\renewcommand{\thesection}{S\arabic{section}}
+\renewcommand{\theequation}{S\arabic{equation}}
+\renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\thefigure}{S\arabic{figure}}
+
+
+\begin{document}
+
+\title{Supplementary Information for\\[6pt]
+       Coherence of Resilience Measures for the Atlantic Meridional
+       Overturning Circulation Across a Hierarchy of Models}
+
+\author{Andreas Morr$^{1,2}$%
+\thanks{Corresponding author: \texttt{andreas.morr@tum.de}}
+\and
+Reyk Börner$^{3}$
+\and
+Sjoerd Terpstra$^{3}$
+\and
+Christian Kuehn$^{1}$}
+
+
+\date{\today}
+\maketitle
+
+This document provides the model-specific details for the four models analysed in the main text: the 3-box salinity model (Section~\ref{app:boxmodel}), the Boussinesq latitude-depth model (Section~\ref{app:boussinesq}), CLIMBER-X (Section~\ref{app:climber-x}), and PlaSim-LSG (Section~\ref{app:plasim}). Figure and table numbers without the prefix ``S'' refer to the main text.
+
+\newpage
+
+\section{Specifics on the 3-box salinity model}
+\label{app:boxmodel}
+
+\subsection*{State variables and units}
+
+The 5-box model of \citet{Wood20195BoxModel} describes the Atlantic overturning through the exchange of salt between a North Atlantic box ($N$), a Tropical Atlantic box ($T$), a Southern Ocean box ($S$), an Indo-Pacific box ($IP$), and a deep box ($B$) below the Atlantic boxes. Temperature is not a state variable. It enters only through the prescribed difference $T_S-T_0$ in the density-driven overturning $q$. Following \citet{Alkhayuon2019AMOCRateTipping}, we retain only the North and Tropical Atlantic salinities as dynamical variables. The Southern Ocean and deep-box salinities vary on much longer time scales and are held fixed, while the Indo-Pacific salinity is diagnosed from conservation of the total salt content $C$. The resulting system is a two-dimensional, piecewise-smooth ordinary differential equation.
+
+Salinities are written in the anomaly convention $S_i=100(S_i^{\mathrm{dim}}-S_0)$, where $S_i^{\mathrm{dim}}$ is the salinity as a mass fraction and $S_0=0.035$. One internal unit therefore corresponds to $10\psu{}$, and the $\pm2\psu{}$ perturbation region of the main text spans $\pm0.2$ internal units. In the figures, internal values are converted as $S_i^{\mathrm{plot}}=35+10S_i\psu{}$, and salinity distances are multiplied by 10 to express them in \psu{}. The prescribed $S_S$ and $S_B$ are converted to the same convention, and the Indo-Pacific salinity is evaluated at every call of the right-hand side as
+\begin{equation}
+S_{IP}=\frac{100}{V_{IP}}\left[C-\frac{V_NS_N+V_TS_T+V_SS_S+V_BS_B}{100}-S_0(V_N+V_T+V_S+V_{IP}+V_B)\right].
+\label{eq:sip}
+\end{equation}
+
+\subsection*{Governing equations}
+
+The model allows for an additional freshwater hosing $H$ (in Sv), distributed to the North and Tropical Atlantic as $\widetilde F_N=F_N+0.1311\times10^6H$ and $\widetilde F_T=F_T+0.6961\times10^6H$. We set $H=0$ throughout, so that $\widetilde F_N=F_N$ and $\widetilde F_T=F_T$. The governing equations are
+\begin{align}
+\frac{\dint S_N}{\dint t}
+&=\begin{cases}
+\dfrac{Y}{V_N}\left[\dfrac{(q+K_N)(S_T-S_N)}{100}-\widetilde F_NS_0\right], & q\geq0,\\[6pt]
+\dfrac{Y}{V_N}\left[-\dfrac{q(S_B-S_N)}{100}+\dfrac{K_N(S_T-S_N)}{100}-\widetilde F_NS_0\right], & q<0,
+\end{cases}
+\label{eq: dS_N}\\[4pt]
+\frac{\dint S_T}{\dint t}
+&=\begin{cases}
+\begin{aligned}
+\dfrac{Y}{V_T}\Bigl[&\dfrac{q(\gamma S_S+(1-\gamma)S_{IP}-S_T)}{100}+\dfrac{K_S(S_S-S_T)}{100}\\[-2pt]
+&+\dfrac{K_N(S_N-S_T)}{100}-\widetilde F_TS_0\Bigr],
+\end{aligned} & q\geq0,\\[10pt]
+\begin{aligned}
+\dfrac{Y}{V_T}\Bigl[&-\dfrac{q(S_N-S_T)}{100}+\dfrac{K_S(S_S-S_T)}{100}\\[-2pt]
+&+\dfrac{K_N(S_N-S_T)}{100}-\widetilde F_TS_0\Bigr],
+\end{aligned} & q<0,
+\end{cases}
+\label{eq: dS_T}\\[4pt]
+q&=\frac{\lambda\left[\alpha(T_S-T_0)+\beta(S_N-S_S)/100\right]}{1+\lambda\alpha\mu}.
+\label{eq: q}
+\end{align}
+Here $V_i$ are the box volumes, $K_N$ and $K_S$ are gyre mixing coefficients, $F_N$ and $F_T$ are the net freshwater fluxes into the North and Tropical Atlantic, $\alpha$ and $\beta$ are the thermal and haline expansion coefficients, $\lambda$ is a hydraulic constant, and $\mu$ accounts for the advection of heat by the overturning. The routing parameter $\gamma$ sets the fraction of the positive overturning return flow that enters the Tropical Atlantic from the Southern Ocean rather than from the Indo-Pacific. The time-scaling factor $Y=3.15\times10^9\,\text{s}$ combines the number of seconds per year with the factor 100 of the anomaly convention, so that $t$ is measured in years. The overturning $q$ is in $\text{m}^3\,\text{s}^{-1}$ and is divided by $10^6$ to obtain Sverdrups. When $q$ changes sign, the direction of the advective salt transport reverses, which makes the right-hand side discontinuous at $q=0$. The two parameter vectors are listed in Table~\ref{tab:box-params}.
+
+\begin{table}[t]
+  \centering
+  \small
+  \caption{Parameters of the 3-box model for the pre-industrial ($p_{1\times}$) and doubled-\CO{} ($p_{2\times}$) calibrations of \citet{Wood20195BoxModel} and \citet{Alkhayuon2019AMOCRateTipping}. Salinities $S_S$, $S_B$, and $S_0$ are given as mass fractions.}
+  \label{tab:box-params}
+  \begin{tabular}{llll}
+    \toprule
+    Symbol & $p_{1\times}$ & $p_{2\times}$ & Unit \\
+    \midrule
+    $V_N$          & $0.3261\times10^{17}$ & $0.3683\times10^{17}$ & m$^3$ \\
+    $V_T$          & $0.7777\times10^{17}$ & $0.5418\times10^{17}$ & m$^3$ \\
+    $V_S$          & $0.8897\times10^{17}$ & $0.6097\times10^{17}$ & m$^3$ \\
+    $V_{IP}$       & $2.2020\times10^{17}$ & $1.4860\times10^{17}$ & m$^3$ \\
+    $V_B$          & $8.6490\times10^{17}$ & $9.9250\times10^{17}$ & m$^3$ \\
+    $S_S$          & $0.034427$ & $0.034427$ & -- \\
+    $S_B$          & $0.034538$ & $0.034538$ & -- \\
+    $S_0$          & $0.035$ & $0.035$ & -- \\
+    $F_N$          & $0.384\times10^{6}$ & $0.486\times10^{6}$ & m$^3$\,s$^{-1}$ \\
+    $F_T$          & $-0.723\times10^{6}$ & $-0.997\times10^{6}$ & m$^3$\,s$^{-1}$ \\
+    $T_S$          & $4.773$ & $7.919$ & °C \\
+    $T_0$          & $2.650$ & $3.870$ & °C \\
+    $K_N$          & $5.456\times10^{6}$ & $1.762\times10^{6}$ & m$^3$\,s$^{-1}$ \\
+    $K_S$          & $5.447\times10^{6}$ & $1.872\times10^{6}$ & m$^3$\,s$^{-1}$ \\
+    $\alpha$       & $0.12$ & $0.12$ & kg\,m$^{-3}$\,°C$^{-1}$ \\
+    $\beta$        & $790$ & $790$ & kg\,m$^{-3}$ \\
+    $\lambda$      & $2.79\times10^{7}$ & $1.62\times10^{7}$ & m$^6$\,kg$^{-1}$\,s$^{-1}$ \\
+    $\gamma$       & $0.39$ & $0.36$ & -- \\
+    $\mu$          & $5.5\times10^{-8}$ & $22\times10^{-8}$ & °C\,m$^{-3}$\,s \\
+    $C$            & $4.4463\times10^{16}$ & $4.4735\times10^{16}$ & m$^3$ \\
+    $Y$            & $3.15\times10^{9}$ & $3.15\times10^{9}$ & s \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection*{Continuation in \CO{}}
+
+\citet{Wood20195BoxModel} calibrated the two parameter vectors against FAMOUS simulations at pre-industrial and doubled \CO{}. Between the two calibrations, the box volumes, freshwater fluxes, temperatures, mixing coefficients, $\lambda$, $\gamma$, $\mu$, and the total salt content all change, whereas $S_S$, $S_B$, $\alpha$, $\beta$, $S_0$, and $Y$ are identical. We move along the straight line $p(r)=p_{1\times}+r(p_{2\times}-p_{1\times})$ in the full parameter space, labelled by $C(r)=280\,\text{ppm}+280\,\text{ppm}\,r$. This label is a convenient coordinate rather than a physical calibration, in particular for $r>1$. The continuation runs from $r=0$ to $r=2.4$ in steps of $\Delta r=0.05$ ($14\,\text{ppm}$), with one additional point at $r=2.225$ ($903\,\text{ppm}$). The last regular step with an on-state is $r=2.2$ ($896\,\text{ppm}$). At $r=2.25$ ($910\,\text{ppm}$), only the reversed (off) state is found, so the resilience measures are reported from 280 through $903\,\text{ppm}$.
+
+Attractors are found and continued with the global continuation framework of Attractors.jl \citep{Datseris2023FrameworkGlobalStability}, using a recurrence-based mapper on a fixed state-space grid with $S_N\in[-1,1]$ (101 points) and $S_T\in[-0.1,2]$ (106 points), and a seed-and-match scheme to follow attractors from one parameter value to the next. Trajectories are integrated with the stiff Rosenbrock23 solver at absolute and relative tolerances of $10^{-7}$. The on-state is identified at $r=0$ as the attractor with the largest $q$ and is tracked along the continuation.
+
+\subsection*{Resilience estimation}
+
+The non-local measures are not computed on the fixed attractor-search grid. Instead, at every continuation step, we centre a square of half-width $0.2$ internal units ($\pm2\psu{}$) on the current on-state fixed point and draw $10\,000$ initial conditions uniformly from it. The random seed is fixed for each step to make the results reproducible. Each initial condition is integrated until it comes within $\varepsilon=0.005$ internal units ($0.05\psu{}$) of one of the attractors. If this does not happen within $50\,000$ model years, the initial condition remains unassigned. This long cut-off is needed near the end of the on-branch, where the on-state recovers very slowly (the e-folding time is about 3000 years at $903\,\text{ppm}$) and convergence can take up to about $18\,000$ years.
+
+From this ensemble, we obtain the basin volume as the fraction of initial conditions that converge to the on-state, the mean convergence time as the average first time at which these trajectories enter the $\varepsilon$-neighbourhood of the on-state, and the minimal critical shock as the smallest Euclidean distance between the on-state and a sampled initial condition that does not converge to it. The latter is limited by the sampling density and is therefore an upper bound for the true minimal critical shock. Local resilience is the inverse of the characteristic return time $\tau=-1/\mathrm{Re}(\lambda_{\max})$, where $\lambda_{\max}$ is the eigenvalue with the largest real part of the Jacobian at the on-state fixed point, obtained by forward-mode automatic differentiation. All four measures are computed with the stability-measure routines described in \citet{Morr2026ComputingResilienceMeasures}.
+
+For Figure~\ref{fig:box-paper}, the basins are evaluated on a regular $60\times60$ grid over the same $\pm2\psu{}$ window around the on-state, using the same $50\,000$-year cut-off and a slightly larger proximity threshold of $0.1\psu{}$. The four example trajectories start at offsets of $\pm1.6\psu{}$ in both coordinates and are shown for the first 3000 model years.
+
+\section{Specifics on the Boussinesq model}
+\label{app:boussinesq}
+
+\subsection*{Physical setup}
+
+The model describes a two-dimensional meridional section of a single ocean basin, with non-dimensional latitude $x\in[0,5]$ and depth $z\in[0,1]$. Here $x=0$ is the South Pole, $x=2.5$ the equator, and $x=5$ the North Pole, while $z=0$ is the ocean floor and $z=1$ the surface. For plotting and for the definition of the boxes, we map $x$ to latitude as $x/5\cdot180°-90°$ and $z$ to a nominal depth of $1000(1-z)\,\text{m}$. The zonally averaged flow is incompressible and treated in the Boussinesq approximation, in which density variations are retained only in the buoyancy term. The model goes back to \citet{Dijkstra1997AMOCPDE} and was recently studied as a stochastic partial differential equation by \citet{Soons2025MostLikelyNoiseinduced} and \citet{Esclapez2026ConstructingEfficientScore}. The velocity field is derived from a streamfunction $\psi(x,z,t)$ via
+\begin{equation}
+  u = \frac{\partial \psi}{\partial z}, \qquad w = -\frac{\partial \psi}{\partial x},
+  \label{eq:vel_bous}
+\end{equation}
+where $u$ is the meridional and $w$ the vertical velocity, and the vorticity is $\omega=-\nabla^2\psi$. The non-dimensional parameters and the numerical resolution are given in Table~\ref{tab:boussinesq-params}.
+
+\begin{table}[t]
+  \centering
+  \caption{Non-dimensional parameters and numerical settings of the Boussinesq model.}
+  \label{tab:boussinesq-params}
+  \begin{tabular}{lll}
+    \toprule
+    Symbol & Value & Meaning \\
+    \midrule
+    $\mathrm{Pr}$   & $1$              & Prandtl number ($\nu/\kappa_T$) \\
+    $\mathrm{Le}$   & $1$              & Lewis number ($\kappa_T/\kappa_S$) \\
+    $\mathrm{Ra}$   & $4\times10^4$    & Rayleigh number \\
+    $a$             & $5$              & Domain length (pole to pole) \\
+    $\delta$        & $0.05$           & Surface boundary-layer thickness \\
+    $\tau_T$        & $0.1$            & Thermal restoring time scale \\
+    $\tau_S$        & $1.0$            & Salinity flux time scale \\
+    $\beta_s$       & $0.1$, $-0.1$, $0$ & Hemispheric salinity-forcing asymmetry (spin-ups, perturbed runs) \\
+    $\alpha_s$      & $1$              & Hydrological intensification coefficient \\
+    $\gamma$        & $0,0.01,\ldots,0.06$ & Arctic-amplification parameter \\
+    $M,\,N$         & $20,\,40$        & Grid intervals ($21\times41$ points) \\
+    $\Delta t$      & $10^{-3}$        & Time step \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection*{Governing equations}
+
+Temperature $T$, salinity $S$, and vorticity $\omega$ evolve according to coupled advection--diffusion equations with surface forcing:
+\begin{align}
+  \frac{\partial T}{\partial t} + u\frac{\partial T}{\partial x} + w\frac{\partial T}{\partial z}
+    &= \nabla^2 T + \frac{h(z)}{\tau_T}\bigl(T_s^\gamma(x) - T\bigr), \label{eq:bous_T}\\[4pt]
+  \frac{\partial S}{\partial t} + u\frac{\partial S}{\partial x} + w\frac{\partial S}{\partial z}
+    &= \frac{1}{\mathrm{Le}}\nabla^2 S + \frac{h(z)}{\tau_S}\,S_s^\gamma(x), \label{eq:bous_S}\\[4pt]
+  \frac{\partial \omega}{\partial t} + u\frac{\partial \omega}{\partial x} + w\frac{\partial \omega}{\partial z}
+    &= \mathrm{Pr}\,\nabla^2\omega + \mathrm{Pr}\cdot\mathrm{Ra}\,\frac{\partial}{\partial x}(T - S), \label{eq:bous_omega}\\[4pt]
+  \nabla^2\psi &= -\omega. \label{eq:bous_psi}
+\end{align}
+The profile $h(z)=\exp(-(1-z)/\delta)$ confines the surface forcing to a thin layer below the surface. Temperature is relaxed towards a prescribed surface profile on the time scale $\tau_T$. Salinity is instead forced by a fixed flux, reflecting that surface salinity is set by the freshwater exchange with the atmosphere rather than by relaxation to a reference value. After each time step, the salinity field is rescaled so that its domain mean remains exactly one. The baroclinic term $\mathrm{Pr}\cdot\mathrm{Ra}\,\partial_x(T-S)$ in the vorticity equation encodes a linear equation of state with density anomalies $\rho\propto-(T-S)$. Horizontal density contrasts thus generate overturning vorticity, and $\mathrm{Pr}\cdot\mathrm{Ra}=4\times10^4$ controls the strength of this driving relative to viscous dissipation.
+
+The unmodified surface temperature profile is
+\begin{equation}
+  T_s(x) = \tfrac{1}{2}\!\left[\cos\!\left(\tfrac{2\pi x}{a} - \pi\right) + 1\right],
+  \label{eq:Ts}
+\end{equation}
+with $T_s=0$ at both poles and $T_s=1$ at the equator. The surface salinity flux is
+\begin{equation}
+  S_s(x) = 3.5\cos\!\left(\tfrac{2\pi x}{a} - \pi\right) - \beta_s\sin\!\left(\tfrac{\pi x}{a} - \tfrac{\pi}{2}\right).
+  \label{eq:Ss}
+\end{equation}
+The cosine term represents net evaporation in the tropics and net precipitation at high latitudes. The $\beta_s$ term breaks the hemispheric symmetry; for $\beta_s>0$, it adds freshwater in the northern and removes it in the southern high latitudes.
+
+\subsection*{Boundary conditions and numerical discretisation}
+
+All walls are stress-free and impermeable, so $\psi=\omega=0$ on the boundary, and there is no flux of heat or salt through any wall ($\partial_n T=\partial_n S=0$). The surface forcing enters only through the interior source terms weighted by $h(z)$. The latitude coordinate is discretised on a uniform grid, and the depth coordinate on a stretched grid
+\begin{equation}
+  z_j = \tfrac{1}{2} + \frac{\tanh\!\bigl(3(j/N - \tfrac{1}{2})\bigr)}{2\tanh(3/2)}, \qquad j = 0,\ldots,N,
+  \label{eq:zgrid}
+\end{equation}
+which refines the resolution near the surface and the floor. Spatial derivatives are approximated by second-order finite differences. Time stepping is semi-implicit with $\Delta t=10^{-3}$: diffusion and thermal relaxation are treated implicitly and advection explicitly. Each implicit step, as well as the Poisson problem for $\psi$, takes the form of a Sylvester equation that is solved with the Bartels--Stewart algorithm. All experiments in this paper are deterministic; the stochastic salinity forcing available in the model is switched off.
+
+The AMOC strength is diagnosed as the mean streamfunction over a small fixed window in the northern basin interior ($x\in\{3.5,3.75\}$, i.e.\ $36°$--$45°\text{N}$, and $z\approx0.42$--$0.54$). With this convention, the active northern-sinking circulation has positive values and the reversed circulation negative values.
+
+\subsection*{Arctic amplification and \CO{} mapping}
+
+To move the model through different climate states, the surface temperature forcing is blended towards its spatial mean,
+\begin{equation}
+  T_s^\gamma(x) = (1-\gamma)\,T_s(x) + \gamma\overline{T_s},
+  \label{eq:Tgamma}
+\end{equation}
+where $\overline{T_s}$ is the mean of the unmodified profile on the model grid. At $\gamma=0$ the forcing is unchanged, while increasing $\gamma$ reduces the equator-to-pole temperature contrast and thereby the thermal driving of the overturning in \eqref{eq:bous_omega}. The same parameter intensifies the hydrological cycle. We scale the symmetric part of the salinity flux \eqref{eq:Ss} and leave the asymmetry unchanged,
+\begin{equation}
+  S_s^\gamma(x) = (1 + \alpha_s\gamma)\,3.5\cos\!\left(\tfrac{2\pi x}{a} - \pi\right) - \beta_s\sin\!\left(\tfrac{\pi x}{a} - \tfrac{\pi}{2}\right),
+  \label{eq:Sgamma}
+\end{equation}
+with $\alpha_s=1$. The evaporation--precipitation amplitude would thus double at $\gamma=1$ and increases by $6\%$ at the largest value $\gamma=0.06$ used here. Increasing $\gamma$ therefore weakens the thermal driving and strengthens the freshwater forcing at the same time.
+
+We relate $\gamma$ to the atmospheric \CO{} concentration $C$ through the logarithmic forcing law and an estimate of polar sea-surface amplification. If the global-mean surface warming is $\text{ECS}\cdot\log_2(C/C_0)$ and the high-latitude sea surface warms by a factor $\alpha_\text{sst}$ more, the equator-to-pole temperature difference $\Delta T_0$ is reduced by $(\alpha_\text{sst}-1)\,\text{ECS}\,\log_2(C/C_0)$. Expressing this reduction as a fraction of $\Delta T_0$ gives
+\begin{equation}
+  \gamma(C) = \frac{(\alpha_\text{sst}-1)\,\text{ECS}}{\Delta T_0}\log_2\!\left(\frac{C}{C_0}\right)
+  = 0.05\log_2\!\left(\frac{C}{280\,\text{ppm}}\right).
+  \label{eq:co2_gamma}
+\end{equation}
+We use the IPCC AR6 best estimate $\text{ECS}=3.0\,°\text{C}$ per \CO{} doubling \citep{Forster2021IPCCAR6Ch7}, a pre-industrial Atlantic equator-to-pole sea-surface temperature difference of $\Delta T_0=30\,°\text{C}$, and $\alpha_\text{sst}=1.5$. The latter is deliberately smaller than the near-fourfold amplification of Arctic surface air temperature \citep{Rantanen2022ArcticHasWarmed}, since sea-ice insulation and ocean heat uptake strongly damp the warming at the ocean surface. With these choices, $\gamma=0$ corresponds to $C_0=280\,\text{ppm}$ and $\gamma=0.05$ to $560\,\text{ppm}$. The sweep covers $\gamma=0,0.01,\ldots,0.06$, corresponding to 280, 322, 369, 424, 488, 560, and $643\,\text{ppm}$. A sweep at $\gamma=0.07$ ($739\,\text{ppm}$) is not used: there, the model is close to the end of the on-branch, two thirds of the perturbed runs do not settle within the integration limit, and an additional weak cluster of final states appears.
+
+\subsection*{Reference states and perturbation experiments}
+
+For each $\gamma$, two spin-ups of $20\,000$ time steps (20 model time units) are run with weak hemispheric asymmetry, $\beta_s=0.1$ and $\beta_s=-0.1$. Starting from each of them, the model is then integrated under symmetric forcing ($\beta_s=0$) until it settles. The $\beta_s=0.1$ spin-up leads to the active (on) state and the $\beta_s=-0.1$ spin-up to the reversed (off) state. All perturbed runs use $\beta_s=0$.
+
+The perturbation boxes are sets of whole grid cells. The North Atlantic box covers $x\in[3.625,5]$ (approximately $40.5°$--$90°\text{N}$), the Tropical Atlantic box $x\in[1.625,3.625]$ (approximately $31.5°\text{S}$--$40.5°\text{N}$), and the Southern box the remaining domain south of $x=1.625$. All three boxes contain the cells with $z\geq1-0.28449$, which are the top 15 grid levels and reach down to about $284\,\text{m}$ on the nominal depth scale. The perturbation field of each box is tapered with a cosine profile at the interior box edges, while edges at domain walls (the poles and the surface) remain sharp. Each field is normalised so that its mean over the box equals one. Adding a perturbation of amplitude $\Delta S$ thus changes the box-mean salinity by exactly $\Delta S$. The salt added to or removed from the North and Tropical Atlantic boxes is compensated in the Southern box, which leaves the domain-mean salinity unchanged.
+
+The basin-mapping ensemble applies the $20\times20$ grid of amplitudes $(\Delta S_N,\Delta S_T)\in[-2,2]^2\psu{}$ to the salinity field of the $\beta_s=0.1$ spin-up, whose box salinities lie within $0.1\psu{}$ of the $\beta_s=0$ on-state for all $\gamma$. Temperature, vorticity, and streamfunction are set to zero in these initial conditions. Each run is integrated under $\beta_s=0$ for at most $500\,000$ time steps (500 model time units), and is stopped as soon as its North and Tropical box salinities come within $0.05\psu{}$ of either the on- or the off-state. Runs that reach the integration limit or develop negative salinity are excluded; for $\gamma\leq0.06$, all 400 runs at every forcing level are valid. The final streamfunction values are clustered by gap detection (gap threshold $0.2$ model units), the cluster with the largest streamfunction is identified as the on-state, and each run is assigned to the nearest cluster. The on-state location in the salinity plane is the median final box salinity of the runs assigned to it.
+
+Basin volume is the fraction of valid runs assigned to the on-state. Mean convergence time is the average, over these runs, of the first time at which the box salinities come within $0.05\psu{}$ of the on-state location. Minimal critical shock is the smallest salinity-plane distance between the on-state location and the initial condition of a run that ends in the off-state. Between $\gamma=0$ and $\gamma=0.06$, the basin volume rises from $0.71$ to $0.79$. This change is carried by 31 grid cells that switch from the off- to the on-state basin, while no cell switches in the opposite direction.
+
+\subsection*{Local linear stability}
+
+Local resilience is estimated from a separate, smaller ensemble. For each $\gamma$, the $\beta_s=0$ on-state is located by settling from the $\beta_s=0.1$ spin-up with temperature, vorticity, and streamfunction set to zero. For $\gamma>0$, the on-state of the previous $\gamma$ is used as the starting point instead. Eight perturbations of radius $0.5\psu{}$ are then applied to the complete on-state, in directions spaced by $45°$ in the $(\Delta S_N,\Delta S_T)$ plane and again with Southern-box compensation. In contrast to the basin-mapping ensemble, temperature, vorticity, and streamfunction are kept, so that the trajectories describe the relaxation of the full state. Each trajectory is integrated for 5000 time steps. Directions whose final distance from the equilibrium exceeds the initial radius are discarded. After skipping the first 500 steps, the box-salinity deviations $x=(\delta S_N,\delta S_T)$ are sampled every 200 steps ($\Delta t_{\mathrm{obs}}=0.2$ model time units), and a $2\times2$ matrix $M$ is fitted by least squares to all pairs $(x_t,x_{t+\Delta t_{\mathrm{obs}}})$. The generator $A=\log(M)/\Delta t_{\mathrm{obs}}$ gives the characteristic return time $\tau=-1/\max\mathrm{Re}(\lambda(A))$, and the local resilience is $1/\tau$.
+
+\subsection*{Physical scaling}
+
+Model salinities are converted to practical salinity by the affine map $S\,[\psu{}]=10.72735\,s+25.45555$. It is fixed by requiring that the North Atlantic and Tropical Atlantic boxes of the pre-industrial ($\gamma=0$) $\beta_s=0.1$ spin-up have salinities of $35.0$ and $36.5\psu{}$. Perturbation amplitudes convert with the slope alone, so the $\pm2\psu{}$ grid corresponds to $\pm0.186$ model units and the $0.05\psu{}$ convergence radius to $0.0047$ model units. The streamfunction is converted to Sverdrups by mapping the AMOC diagnostic of the same pre-industrial spin-up, $\psi\approx1.517$ model units, to $18\Sv{}$, which gives a factor of $11.864\Sv{}$ per model unit. The AMOC strength shown in Figure~\ref{fig:synthesis} is that of the $\beta_s=0$ on-state, which on this scale increases from $16.0\Sv{}$ at $280\,\text{ppm}$ to $19.0\Sv{}$ at $643\,\text{ppm}$. Time is reported on a year-proxy scale of 100 years per model time unit. On this scale, the spin-ups last 2000 years, the basin-mapping runs are limited to $50\,000$ years, and the local-stability trajectories last 500 years with observations every 20 years. Local resilience is correspondingly divided by 100.
+
+\section{Specifics on the CLIMBER-X model}
+\label{app:climber-x}
+
+\subsection*{Model}
+
+CLIMBER-X v1.0 \citep{Willeit2022EarthSystemModel} couples the 2.5-dimensional semi-empirical statistical-dynamical atmosphere model SESAM, the three-dimensional frictional-geostrophic ocean model GOLDSTEIN, the dynamic-thermodynamic sea-ice model SISIM, and the land surface model PALADYN. All components run on a regular $5°\times5°$ grid, and the ocean has 23 vertical layers of increasing thickness, with a top layer of $10\,\text{m}$. On a single node of a high-performance computer, the model simulates about $10\,000$ years per day. This makes ensembles of multi-millennial integrations feasible, which are out of reach for general circulation models. Atmospheric \CO{} is prescribed as a constant in all our runs.
+
+\subsection*{Equilibria and diagnostics}
+
+For each of the 15 \CO{} levels (285, 300, 315, 330, 345, 360, 385, 400, 430, 460, 490, 510, 540, 570, and $600\,\text{ppm}$), the model is started from the default pre-industrial restart and integrated for $20\,000$ years at fixed \CO{}. The final restart serves as the reference state for all perturbation experiments at that level, and the trailing 500 years provide the reference AMOC strength. We diagnose the AMOC as the maximum of the Atlantic overturning streamfunction at $26°\text{N}$.
+
+The salinity diagnostics are written as annual means by a small modification of the model output routines. The North Atlantic box consists of all Atlantic-basin cells between $35°$ and $80°\text{N}$, and the Tropical Atlantic box of all Atlantic-basin cells between $35°\text{S}$ and $35°\text{N}$. Both boxes are defined by the model's basin mask, so their zonal extent follows the coastlines and is not bounded by fixed longitudes. Both include the top four ocean layers (layer centres at 5.3, 18.4, 39.4, and $78.8\,\text{m}$), which end at about $105\,\text{m}$. The box salinities are volume-weighted means and are also written for the initial state, so the time series start with the applied perturbation.
+
+\subsection*{Perturbations}
+
+Perturbations are applied directly to the salinity field of the restart file. Within each box, the anomaly is tapered with a cosine profile over two grid cells at the northern and southern box edges and over the lower two of the four layers. No tapering is applied in longitude, where the box is bounded by land. The tapered field is rescaled so that the volume-weighted mean anomaly over the box equals the prescribed value exactly. To conserve the global salt content, a uniform compensating anomaly
+\begin{equation}
+\Delta S_c=-\frac{\Delta S_{NA}V_{NA}+\Delta S_{T}V_{T}}{V_{\mathrm{glob}}-V_{NA}-V_{T}}
+\end{equation}
+is applied to the rest of the world ocean in the same upper $105\,\text{m}$, where $V_{\mathrm{glob}}$ is the volume of the upper $105\,\text{m}$ of the global ocean and $V_{NA}$, $V_T$ are the box volumes.
+
+In the main experiment, $\Delta S_{NA}$ and $\Delta S_T$ each take the values $-2,-1.5,\ldots,2\psu{}$, which gives 81 runs per \CO{} level and 1215 runs in total. Each run is integrated for $10\,000$ years at the \CO{} level of its reference state.
+
+\subsection*{Classification and resilience measures}
+
+The resilience measures are evaluated in the plane of the two box salinities, relative to the final state of the unperturbed grid run. A run is considered converged if it ends within $\varepsilon=0.05\psu{}$ of this reference state. Its convergence time is the time of the last entry into this $\varepsilon$-ball, after which the trajectory remains inside. Runs that do not end inside the ball are counted as not returning. They are excluded from the mean convergence time and enter the basin volume and minimal critical shock as members of a different basin. The minimal critical shock is the smallest initial distance from the reference state among these runs. Because it is resolved only to the $0.5\psu{}$ grid spacing, it is an upper bound on the true value.
+
+At 285, 300, and all levels from $345\,\text{ppm}$ upward, all 81 runs return. At $315\,\text{ppm}$, 21 runs settle on the strong state (basin volume $0.741$, minimal critical shock $0.713\psu{}$), and at $330\,\text{ppm}$, 46 runs do (basin volume $0.432$, minimal critical shock $0.499\psu{}$). The final states are tightly clustered. Within each cluster, they scatter by about $0.002\psu{}$, while the strong state lies $0.068\psu{}$ ($315\,\text{ppm}$) and $0.076\psu{}$ ($330\,\text{ppm}$) from the reference state in North Atlantic salinity. No run ends between $0.02$ and $0.05\psu{}$ from the reference state, so the classification does not depend on the exact choice of $\varepsilon$ between about $0.01$ and $0.05\psu{}$. A threshold of $0.1\psu{}$ or more, in contrast, would merge the two states. The strong-state AMOC is $0.21\Sv{}$ ($315\,\text{ppm}$) and $0.36\Sv{}$ ($330\,\text{ppm}$) stronger than the reference.
+
+The strong state reached from the perturbed runs at $330\,\text{ppm}$ has the same North Atlantic salinity ($34.587\psu{}$) as the unperturbed equilibrium at $345\,\text{ppm}$ ($34.585\psu{}$). From $345\,\text{ppm}$ onward, the $20\,000$-year equilibration itself ends on this stronger branch. The resilience measures therefore refer to the modern state at 285--$330\,\text{ppm}$ and to the strong state at 345--$600\,\text{ppm}$. In the latter range, no perturbation within the $\pm2\psu{}$ grid leaves the strong-state basin, so the minimal critical shock is not defined there.
+
+\subsection*{Local linear stability}
+
+For local resilience, nine further runs are performed at every \CO{} level, 135 in total. One run is unperturbed, and eight apply perturbations of $0.1\psu{}$ in directions $\theta=0°,45°,\ldots,315°$, i.e.\ $(\Delta S_{NA},\Delta S_T)=0.1\psu{}\,(\cos\theta,\sin\theta)$, with the same global compensation as above. Each run is integrated for 500 years. The equilibrium is taken as the mean box salinity of the unperturbed run over years 10--150, and the deviations $x_t$ of the eight perturbed runs from it are used in the same window. A $2\times2$ matrix $M$ is fitted by least squares to all annual pairs $(x_t,x_{t+1})$, and the generator $A=\log(M)/(1\,\text{yr})$ yields the characteristic return time $\tau=-1/\max\mathrm{Re}(\lambda(A))$ and the local resilience $1/\tau$.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{box_traj_315_10ky_gc_narrow.png}
+  \caption{Trajectories of the 81 CLIMBER-X perturbation runs at $315\,\text{ppm}$, integrated for $10\,000$ years. Each run is coloured by its prescribed North Atlantic salinity perturbation $\Delta S_{NA}$; the unperturbed reference run is shown in black. The axes are zoomed onto the vicinity of the equilibria, so the initial transients and most initial conditions lie outside the plotted range. Top row: AMOC strength at $26°\text{N}$, North Atlantic and Tropical Atlantic box salinities (upper $105\,\text{m}$) over time, and the corresponding trajectories in the box-salinity plane (star: reference equilibrium). Bottom row: the same horizontal boxes averaged over deeper layers (North Atlantic down to $1051\,\text{m}$, Tropical Atlantic down to $525\,\text{m}$), shown over time and in the corresponding salinity plane (circles: initial conditions within the plotted range). Two end states can be distinguished: the modern reference state and a strong state with about $0.07\psu{}$ higher North Atlantic salinity and a slightly stronger AMOC. Runs with positive $\Delta S_{NA}$ mostly settle on the strong state first. Several of them leave it only after 4000--7500 years, through a transient AMOC weakening of about $1.5\Sv{}$ and North Atlantic freshening, and then converge to the modern state. The 21 runs that are still on the strong state after $10\,000$ years are counted as not returning (Section~\ref{app:climber-x}).}
+  \label{fig:climberx-traj315}
+\end{figure}
+
+\section{Specifics on the PlaSim-LSG model}
+\label{app:plasim}
+
+\subsection*{Model and simulations}
+
+PlaSim-LSG couples the atmospheric general circulation model of the Planet Simulator \citep{Fraedrich2005PlanetSimulatorUser} to the Large Scale Geostrophic ocean model \citep{Maier-Reimer1993MeanCirculationHamburg}. The atmosphere is a spectral primitive-equation model at T21 resolution (about $5.6°\times5.6°$) with 10 vertical levels. The ocean has an effective horizontal resolution of $3.5°\times3.5°$ and 22 vertical layers, whose thickness increases from $50\,\text{m}$ at the surface to $1000\,\text{m}$ in the deep ocean. Sea ice is represented by a thermodynamic zero-layer model without ice transport. With about $10^5$ degrees of freedom, the model runs at roughly 700 model years per day on a single CPU \citep{Borner2026GlobalStabilityAtlantic}. Its AMOC exhibits pronounced multicentennial variability \citep{Mehling2023AMOCBoxPrecip}.
+
+We use the simulations of \citet{Borner2026GlobalStabilityAtlantic} at 285 and $360\,\text{ppm}$, available at doi:10.5281/zenodo.17053348. At both levels, the AMOC is bistable. The on-state has a mean AMOC of $14.7\Sv{}$ ($285\,\text{ppm}$) and $15.0\Sv{}$ ($360\,\text{ppm}$), and the off-state, in which deep convection in the subpolar North Atlantic ceases, has $1.1$ and $1.7\Sv{}$. Here, the AMOC strength is the maximum of the Atlantic overturning streamfunction between $46°$ and $66°\text{N}$, averaged over the full equilibrium runs. The off-state at $360\,\text{ppm}$ varies on multicentennial time scales, with 200-year means between $1.4$ and $2.2\Sv{}$.
+
+The edge state was located with an edge-tracking algorithm \citep{Lucarini2017EdgeTracking}. Starting from a pair of states that converge to opposite attractors, nine intermediate initial conditions are generated by linear interpolation and integrated in parallel. The two neighbouring members that end up on different sides of the basin boundary define the next, ten times closer pair. Once a pair diverges by more than a set threshold in 10-year smoothed AMOC strength, it is refined again in the same way. Concatenating the segments yields a pseudotrajectory that follows the basin boundary towards the edge state, and each iteration also produces two trajectories that leave the boundary towards the on- and the off-state, respectively. These are the edge tracks analysed here. In addition, dedicated long simulations of the on-state, the off-state, and the edge state are available at both \CO{} levels.
+
+\subsection*{Salinity readouts}
+
+We reduce the salinity output to two volume-weighted box means. The North Atlantic readout averages over $35°$--$80°\text{N}$ and the upper 13 ocean layers (down to $1025\,\text{m}$), and the Tropical Atlantic readout over $35°\text{S}$--$35°\text{N}$ and the upper 8 layers (down to $500\,\text{m}$). The edge-track output is already zonally averaged over the Atlantic. For the three-dimensional equilibrium output, we first apply the Atlantic basin mask of the model (with a southern border at $34°\text{S}$) and take the zonal mean. Cells are weighted by $\cos(\text{latitude})$ times layer thickness, and land cells are excluded.
+
+At $285\,\text{ppm}$, we use 37 edge-track files and, at $360\,\text{ppm}$, 38 files, each containing one track towards each attractor. We classify the tracks by their final state rather than by their label in the edge-tracking output. The North Atlantic salinity averaged over the last $10\%$ of each track is compared with its median over all tracks at that \CO{} level, and tracks above the median are assigned to the on-state. This disagrees with the original labels for two tracks per \CO{} level, none of which converges to its attractor according to the criterion below. From the edge-state equilibrium runs, the first 4 years ($285\,\text{ppm}$) and 60 years ($360\,\text{ppm}$) are discarded.
+
+\subsection*{Resilience measures}
+
+For each of the three states, we compute the mean $\mu$ and covariance matrix $C$ of the corresponding equilibrium run in the plane of the two salinity readouts. A point $x$ lies within the $4\sigma$ ellipse of a state if its Mahalanobis distance $\sqrt{(x-\mu)^\top C^{-1}(x-\mu)}$ is at most 4. The convergence time of a track is the time between its last visit to the edge-state ellipse and its first subsequent entry into the ellipse of its target attractor. Tracks that never enter the edge ellipse, or never reach the target ellipse afterwards, are counted as not converged. Many tracks at $285\,\text{ppm}$ are short, and only 4 of 37 tracks converge to each of the on- and off-states. At $360\,\text{ppm}$, 19 of 38 tracks converge to the on-state and 33 of 38 to the off-state.
+
+The distance between the edge state and an attractor is the gap between their $4\sigma$ ellipses along the line connecting the two centres, $\max(0,|\mu_{\mathrm{att}}-\mu_{\mathrm{edge}}|-r_{\mathrm{edge}}-r_{\mathrm{att}})$, where $r$ is the $4\sigma$ radius of each ellipse in that direction. For the on-state, this is the minimal-critical-shock proxy of the main text. The local-resilience proxy is $[2000\sqrt{\lambda_{\max}(C)}]^{-1}$, where $\lambda_{\max}(C)$ is the largest eigenvalue of the on-state covariance. The quantity $2\sqrt{\lambda_{\max}(C)}$ is the long axis of the $1\sigma$ ellipse in \psu{}, and the additional factor 1000 expresses it in units of $10^{-3}\psu{}$. This proxy reflects the size of the fluctuations around the on-state and is not an eigenvalue of the underlying dynamics. Basin volume is not estimated, since the edge tracks start close to the basin boundary and do not sample a reference region of state space. Table~\ref{tab:plasim-results} lists all resulting values.
+
+\begin{table}[t]
+  \centering
+  \caption{Resilience quantities for PlaSim-LSG in the deep-box salinity plane.}
+  \label{tab:plasim-results}
+  \begin{tabular}{llcccc}
+    \toprule
+    \CO{} & State & Mean conv.\ time (yr) & Edge distance (\psu{}) & Local resilience & AMOC (Sv) \\
+    \midrule
+    285 ppm & on  & 105.3 & 0.050 & 0.0357 & 14.7 \\
+    285 ppm & off & 116.0 & 0.204 & 0.0115 & 1.1 \\
+    360 ppm & on  & 150.6 & 0.110 & 0.0368 & 15.0 \\
+    360 ppm & off & 74.8  & 0.093 & 0.0087 & 1.7 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+
+\bibliographystyle{apalike}
+\bibliography{BibAll}
+
+
+\end{document}
