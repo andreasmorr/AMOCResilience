@@ -9,14 +9,16 @@ plotting_perturbations.py  –  Multi-model perturbation & readout overview figu
          Salt is conserved internally via the diagnosed Indo-Pacific box, so no
          explicit compensation region is perturbed.
 
-  Col 2  Boussinesq — North Atlantic and Tropical boxes; compensation elsewhere
-         (b) Globe   — surface footprints as a constant-width Atlantic strip (2-D model)
-         (f) Section — tapered boxes and uniform compensation over their complement
+  Col 2  Boussinesq — North Atlantic and Tropical boxes
+         (b) Globe   — surface footprints and their exact shared full-domain outline
+         (f) Section — tapered boxes
 
-  Col 3  CLIMBER-X — North Atlantic & Tropical perturbation boxes, with the entire
-         rest of the world ocean as the (global) salt-compensation region
-         (c) Globe   — tapered NA/Trop boxes + rest-of-ocean compensation
-         (g) Section — tapered shallow boxes (0–105 m), zoomed 0–300 m
+  Col 3  CLIMBER-X — North Atlantic & Tropical perturbation boxes
+         (c) Globe   — tapered NA/Trop boxes
+         (g) Section — tapered shallow boxes (0–105 m)
+
+  Compensation regions are omitted from every panel; the manuscript describes
+  the model-specific salt-conservation procedures.
 
   Col 4  PlaSim-LSG — North Atlantic & Tropical deep readout boxes only
          (d) Globe   — box footprints
@@ -262,6 +264,7 @@ BOXES_ATLANTIC = {
 # cross-section through the Atlantic.
 _SECTION_LON_CTR = -28.0   # centre of the strip (°E)
 _BAND_WIDTH = 5.0           # degrees longitude
+_STRIP_HALF_WIDTH_M = 300_000  # schematic projected width, not a basin width
 # Latitude borders match the Boussinesq model boxes (x/5·180−90): the
 # north/tropical border is at +40.5°N and the tropical/southern border at
 # −31.5°S (the grid cell faces nearest the +40°N / −34°S targets).
@@ -445,8 +448,6 @@ _bous_model = CanonicalModel(BOUS_M, BOUS_N, 1e-3)
 # Tapered, interior-boosted perturbation fields, shape (M+1, N+1)
 BOUS_NORTH_PERT = _bous_model._box_pert["north"]
 BOUS_TROP_PERT  = _bous_model._box_pert["tropical"]
-BOUS_COMPENSATION = 1.0 - np.maximum(_bous_model.boxes["north"],
-                                     _bous_model.boxes["tropical"])
 
 # Convert Boussinesq x to degrees latitude for axis labels
 BOUS_LAT_DEG = BOUS_XX / 5.0 * 180.0 - 90.0    # (21,)
@@ -588,19 +589,12 @@ def draw_boxes_fine_grid(ax, box_dict):
 
 
 def draw_box_model_globe(ax, box_dict):
-    """Box model globe: the North Atlantic & Tropical boxes plus the entire rest
-    of the world ocean as the (implicit) salt-compensation region, mirroring the
-    CLIMBER-X global-compensation representation."""
-    covered = np.zeros((len(_FINE_LAT), len(_FINE_LON)), dtype=bool)
-    for box in box_dict.values():
-        covered |= _fine_box_footprint(box)
-    rest = FINE_OCEAN_MASK & ~covered
-    _pcolor_fine(ax, rest, BOX_COLOR_SOUTH, alpha_max=0.45)
+    """Box model globe: North Atlantic and Tropical box footprints only."""
     draw_boxes_fine_grid(ax, box_dict)
 
 
 def draw_section_strip_projected(ax, box_dict, lon=_SECTION_LON_CTR,
-                                  strip_half_width_m=300_000):
+                                  strip_half_width_m=_STRIP_HALF_WIDTH_M):
     """Draw each box as a constant-projected-width strip around the section longitude.
 
     Selects fine-grid cells whose orthographic x-coordinate is within
@@ -638,6 +632,53 @@ def draw_section_strip_projected(ax, box_dict, lon=_SECTION_LON_CTR,
                           transform=_PC_TRANSFORM, **kw)
         else:
             ax.pcolormesh(_FINE_LON_EDGES, _FINE_LAT_EDGES, w2, **kw)
+
+
+    # Reuse this exact full-latitude mask for the domain boundary, before land
+    # clipping: it includes the southern part even though it is not coloured.
+    return in_strip
+
+
+def draw_boussinesq_domain_outline(ax, strip_mask):
+    """Trace the same grid-cell edges and geographic projection as the fills.
+
+    The full strip is outlined before land clipping, so land does not break
+    the model domain into pieces. No independent projected bounding box,
+    padding or cap position is used.
+    """
+    from shapely.geometry import MultiLineString
+    from shapely.ops import linemerge
+    from matplotlib.collections import LineCollection
+
+    # Changes between neighbouring cells lie exactly on pcolormesh cell edges.
+    # Longitude wraps, so no artificial boundary is drawn at the map seam.
+    vertical = np.diff(np.pad(strip_mask, ((0, 0), (1, 1)), mode="wrap"), axis=1)
+    j, i = np.nonzero(vertical)
+    lon = _FINE_LON_EDGES[i]
+    vertical_segments = np.stack([
+        np.column_stack([lon, _FINE_LAT_EDGES[j]]),
+        np.column_stack([lon, _FINE_LAT_EDGES[j + 1]]),
+    ], axis=1)
+
+    horizontal = np.diff(np.pad(strip_mask, ((1, 1), (0, 0)),
+                                mode="constant", constant_values=False), axis=0)
+    j, i = np.nonzero(horizontal)
+    lat = np.clip(_FINE_LAT_EDGES[j], -90, 90)
+    horizontal_segments = np.stack([
+        np.column_stack([_FINE_LON_EDGES[i], lat]),
+        np.column_stack([_FINE_LON_EDGES[i + 1], lat]),
+    ], axis=1)
+
+    boundary = linemerge(MultiLineString(
+        np.concatenate([vertical_segments, horizontal_segments]).tolist()))
+    paths = [boundary] if boundary.geom_type == "LineString" else list(boundary.geoms)
+    style = dict(edgecolor="black", facecolor="none", linewidth=0.5,
+                 linestyle="-", zorder=8)
+    if HAS_CARTOPY:
+        ax.add_geometries(paths, crs=_PC_TRANSFORM, **style)
+    else:
+        ax.add_collection(LineCollection([np.asarray(path.coords) for path in paths],
+                                         clip_on=True, **style))
 
 
 def draw_boxes_on_globe(ax, box_dict, taper=False):
@@ -767,7 +808,7 @@ def draw_boussinesq_panel(ax):
     margin-only cosine taper with the interior boost (box-mean = 1), normalised
     to its peak for display so the taper ramp is visible.  The finite box limits
     (latitude range × surface→box-bottom depth) are drawn as dashed rectangles.
-    The complementary region is uniformly shaded to show salt compensation.
+    Only the two target boxes are shaded; compensation is described in the text.
     Depth uses a nominal 1000 m basin for the shared section axis.
     """
     from matplotlib.colors import LinearSegmentedColormap as LSC
@@ -777,10 +818,8 @@ def draw_boussinesq_panel(ax):
 
     pert_n = BOUS_NORTH_PERT.T   # (N+1, M+1)
     pert_t = BOUS_TROP_PERT.T
-    compensation = BOUS_COMPENSATION.T
 
     for pert, color, zorder in [
-        (compensation, BOX_COLOR_SOUTH, 2),
         (pert_t, BOX_COLOR_TROP,  3),
         (pert_n, BOX_COLOR_NA,    4),
     ]:
@@ -965,19 +1004,11 @@ def draw_plasim_section(ax, box_dict, depth_max_plot=1000.0, fill=True,
 
 
 # ---------------------------------------------------------------------------
-# CLIMBER-X globe & section: NA/Trop perturbation boxes + global compensation
+# CLIMBER-X globe & section: NA/Trop perturbation boxes only
 # ---------------------------------------------------------------------------
 
 def draw_climberx_globe(ax):
-    """CLIMBER-X globe: tapered North Atlantic & Tropical perturbation boxes, with
-    the entire rest of the world ocean shaded as the global salt-compensation
-    region.  The anomaly added to the two Atlantic boxes is compensated uniformly
-    over every other ocean cell (top 4 layers), so the compensation footprint is
-    the whole ocean minus the NA and Tropical boxes."""
-    na_hm   = box_hmask(BOXES_CLIMBERX["NA"])
-    trop_hm = box_hmask(BOXES_CLIMBERX["Trop"])
-    rest = OCEAN_MASK & ~na_hm & ~trop_hm
-    _pcolor_globe(ax, rest.astype(float), BOX_COLOR_SOUTH, alpha_max=0.45)
+    """CLIMBER-X globe: tapered North Atlantic and Tropical boxes only."""
     for key in ("NA", "Trop"):
         box = BOXES_CLIMBERX[key]
         w3  = make_3d_mask(box, taper=True)
@@ -987,15 +1018,7 @@ def draw_climberx_globe(ax):
 
 
 def draw_climberx_section(ax, depth_max_plot=300):
-    """CLIMBER-X meridional section: North Atlantic & Tropical tapered boxes (top
-    4 layers, 0–105 m).  A faint full-width surface band marks the global
-    compensation layer that carries the compensating anomaly over the rest of the
-    ocean, so the two Atlantic boxes appear carved out of a global surface layer
-    rather than paired with a discrete Southern box."""
-    comp_depth = float(BOXES_CLIMBERX["NA"]["depth_max"])   # 105 m, top 4 layers
-    ax.add_patch(mpatches.Rectangle(
-        (-90, 0.0), 180, comp_depth,
-        facecolor=BOX_COLOR_SOUTH, alpha=0.30, edgecolor="none", zorder=1))
+    """CLIMBER-X section: tapered North Atlantic and Tropical boxes (0–105 m)."""
     pert = {k: BOXES_CLIMBERX[k] for k in ("NA", "Trop")}
     draw_section(ax, pert, taper=True, depth_max_plot=depth_max_plot,
                  label_depths=False, box_limits=True)
@@ -1046,21 +1069,10 @@ def main():
     panel_labels_bot = ["(e)", "(f)", "(g)", "(h)"]
 
     # ── Column 1: Box model regions ───────────────────────────────────────
-    # The 3-box model perturbs the North Atlantic and Tropical boxes; salt is
-    # conserved over the rest of the ocean, shown (as for CLIMBER-X) by a green
-    # compensation region covering the whole ocean except the NA and Tropical
-    # boxes on the globe, and the southern remainder in the section.
+    # Show only the North Atlantic and Tropical boxes. The manuscript retains
+    # the description of salt conservation through the diagnosed Indo-Pacific box.
     box_globe_natrop = {k: v for k, v in BOXES_GLOBE.items() if k != "South"}
     box_sect_natrop  = {k: v for k, v in BOXES.items()       if k != "South"}
-    # Section compensation box: the southern latitudes not covered by the Tropical
-    # box, at the same depth as the Tropical (red) box.
-    box_sect = {"South": dict(
-        lat_min=-90.0, lat_max=-50.0,
-        lon_min=BOXES["Trop"]["lon_min"], lon_max=BOXES["Trop"]["lon_max"],
-        depth_max=BOXES["Trop"]["depth_max"],
-        color=BOX_COLOR_SOUTH, label="compensation",
-    )}
-    box_sect.update(box_sect_natrop)   # South first so NA/Trop draw on top
     ax = axes_top[0]
     setup_globe(ax)
     draw_box_model_globe(ax, box_globe_natrop)
@@ -1068,7 +1080,7 @@ def main():
     add_panel_label(ax, panel_labels_top[0], fontsize=FS_PANEL)
 
     ax = axes_bot[0]
-    draw_section(ax, box_sect, taper=False, depth_max_plot=2000, label_depths=False,
+    draw_section(ax, box_sect_natrop, taper=False, depth_max_plot=2000, label_depths=False,
                  depth_lines=False, lat_lines=False, box_limits="trace")
     ax.set_ylabel("Depth (m)", fontsize=FS_LABEL)
     add_panel_label(ax, panel_labels_bot[0], y=0.04, va="bottom", fontsize=FS_PANEL)
@@ -1076,7 +1088,9 @@ def main():
     # ── Column 2: Boussinesq context ──────────────────────────────────────
     ax = axes_top[1]
     setup_globe(ax)
-    draw_section_strip_projected(ax, BOXES_BOUS_NARROW)   # constant-width strip → 2-D cross-section
+    bous_natrop = {k: BOXES_BOUS_NARROW[k] for k in ("NA", "Trop")}
+    strip_mask = draw_section_strip_projected(ax, bous_natrop)
+    draw_boussinesq_domain_outline(ax, strip_mask)
     ax.set_title("Boussinesq model", fontsize=FS_TITLE, fontweight="bold")
     add_panel_label(ax, panel_labels_top[1], fontsize=FS_PANEL)
 
@@ -1085,10 +1099,8 @@ def main():
     add_panel_label(ax, panel_labels_bot[1], y=0.04, va="bottom", fontsize=FS_PANEL)
 
     # ── Column 3: CLIMBER-X ───────────────────────────────────────────────
-    # Atlantic-mask perturbation boxes box_na / box_trop (top 4 layers, 0–105 m),
-    # tapered in latitude only; the compensating anomaly is spread over the entire
-    # rest of the world ocean (global salt compensation), shown as the green
-    # rest-of-ocean region rather than a discrete Southern box.
+    # Atlantic-mask perturbation boxes box_na / box_trop (top 4 layers, 0–105 m).
+    # Compensation remains part of the experiment, but is not shaded here.
     ax = axes_top[2]
     setup_globe(ax)
     draw_climberx_globe(ax)
@@ -1130,13 +1142,12 @@ def main():
     legend_handles = [
         mpatches.Patch(color=BOX_COLOR_NA,    alpha=0.75, label="North Atlantic box"),
         mpatches.Patch(color=BOX_COLOR_TROP,  alpha=0.75, label="Tropical Atlantic box"),
-        mpatches.Patch(color=BOX_COLOR_SOUTH, alpha=0.75, label="Compensation region"),
     ]
     fig.legend(
         handles=legend_handles,
         loc="lower center",
         bbox_to_anchor=(0.5, 0.075),   # below the bottom row, under the x-axis labels
-        ncol=3,
+        ncol=2,
         fontsize=FS_LEGEND,
         framealpha=0.9,
         edgecolor="#cccccc",

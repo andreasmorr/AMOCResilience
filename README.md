@@ -48,9 +48,14 @@ spacing. The completed run contains 6,800 trajectories and 17 controls, with
 verified ON references through gamma = 0.1085; metrics at 0.109, 0.1095 and
 0.11 are unavailable because stationary correction did not verify an ON
 reference. This is not evidence of a zero-sized basin or a certified fold.
-Full fields distinguish ON, reversed and two-cell outcomes. Local resilience
-comes from the full-state tangent spectrum, and convergence times use the
-last observed entry into a fixed-normalization full-field ON neighbourhood.
+Full fields distinguish ON, reversed and two-cell outcomes. The canonical
+analysis retains full-state tangent rates and full-field return times. The
+paper uses final observed entry into the projected 0.05-PSU ON neighbourhood,
+conditional on certified ON return, and a separate local ensemble: eight
+0.01-PSU directions plus control, sampled annually for 500 years, with a
+2-by-2 map fitted over years 10–150. This projected rate depends on the fit
+window. Run `AMOCBoussinesq/scripts/estimate_local_resilience.py` before the
+paper export; original full-state measures remain in `full_state_` rows.
 Canonical results retain model units. The paper figures preserve their
 committed layouts and shared axes, using fixed reporting conversions in a
 separate paper export. One model time unit is reported as 100 model years;
@@ -58,10 +63,16 @@ return times multiply by 100 and inverse-time resilience rates divide by 100.
 The salinity-gradient conversion uses the same affine PSU display convention
 as the perturbation grid, with its offset cancelling in the difference.
 Critical shocks already use this coordinate and are not rescaled. Overturning
-uses the existing fixed Sv display factor. These are reporting conventions,
+uses the signed largest-magnitude extremum at 26N (northern sinking positive)
+and the fixed factor 17/3.8504186364706925 Sv per model unit,
+which normalizes the gamma-zero ON state to 17 Sv. These are reporting conventions,
 not a simultaneous physical calibration of the idealized model.
-Its CO2 coordinate `C = 280 * 2^(gamma / 0.05)` is an illustrative display
-relation, not a calibrated atmospheric CO2 response.
+Its CO2 coordinate `C = 280 * 2^(gamma / 0.07)` is an illustrative display
+relation motivated by the symmetric polar-versus-tropical atmospheric warming
+in [Hahn et al. (2021)](https://doi.org/10.3389/feart.2021.710036),
+using an assumed 30 K baseline contrast. It maps gamma .09/.1085/.11 to
+683/820/832 ppm. The SI gives the derivation and limitations; the linked
+freshwater amplification remains a prescribed model assumption.
 
 ### [AMOCClimberX](https://github.com/andreasmorr/AMOCClimberX)
 Trajectory-based perturbation experiments in the Earth system model of
@@ -112,18 +123,31 @@ This reruns only the eight selected cases from their exact saved initial fields,
 with unchanged timestep .001 and readouts at every step (0.1 model years).
 The plot automatically selects the matching completed dense output. All original
 sampled observations and final fields are checked against the canonical run.
-The full ensemble and synthesis statistics retain their .25 observation spacing.
-All observations from time zero are included. Reference circles are projected
-visual neighbourhoods; endpoint classification uses all model fields.
+The large-perturbation return-time statistics retain their .25 observation spacing.
+All observations from time zero are included. Reference circles show the projected
+return-time neighbourhoods; independent endpoint certification uses all model fields.
 
 The Boussinesq export reads the completed canonical run selected by
-`AMOCBoussinesq/data/paper_experiment/latest.json`, preserves each original
-numerical measure and unit in `model_value` and `model_units`, and writes
+`AMOCBoussinesq/data/paper_experiment/latest.json` and the matching projected
+local fit selected by `AMOCBoussinesq/data/paper_local_resilience/latest.json`.
+It preserves native selected-analysis values in `model_value` and `model_units`,
+identifies their inputs in `source_measure` and `source_analysis`, and writes
 `AMOCBoussinesq/data/paper/resilience_vs_gamma_boussinesq.csv` with provenance.
 The separate `value` and `units` columns hold paper conversions. All 20
 requested gamma values are retained; unavailable references have blank values.
 The fixed factors are salinity slope 10.7273456518, streamfunction factor
-18/1.5171475119, and 100 model years per unit model time. Under the
+17/3.8504186364706925 = 4.41510433 Sv per model unit, and 100 model years per unit
+model time. The transport factor assigns 17 Sv to the actual unforced ON
+readout at 26°N, motivated by the RAPID mean of 16.9 ± 1.2 Sv near 26.5°N
+([Johns et al. 2023](https://doi.org/10.1098/rsta.2022.0188)). It is held fixed
+for all forcing values and states, giving 17.00–15.10 Sv across the verified
+ON branch. This is an observed-scale amplitude normalization, not a physical
+basin calibration or a preindustrial observation. Current paper code uses
+`AMOCBoussinesq/src/transport_mapping.py`; the old compatibility scale in the
+frozen salinity module is retained only for historical numerical provenance.
+The SI streamfunction figure at gamma .09 (~683 ppm) is regenerated with
+`python AMOCBoussinesq/scripts/plot_equilibria.py` and uses the same transport
+factor for all three coexisting stable states. Under the
 [`H^2/kappa_T` time scale of Soons et al. (2025)](https://doi.org/10.1017/jfm.2025.248),
 the latter corresponds formally to an effective
 diffusivity of approximately 3.17e-4 m²/s at a nominal 1000 m depth; it preserves

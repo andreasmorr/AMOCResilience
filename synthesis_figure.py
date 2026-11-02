@@ -270,7 +270,7 @@ def load_plasim_salinity_gradient() -> pd.DataFrame | None:
 
 
 def _mark_line_end(ax, sub, color):
-    """Hollow circle at a line's last point, marking where the on-state vanishes.
+    """Hollow circle marking the last plotted on-state point.
 
     The marker is offset to the right by half its width (its radius) and down by
     half its diameter (its radius) via a points-based transform, so the shift is
@@ -294,8 +294,9 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
     """Plot a single resilience-measure panel onto *ax*.
 
     When *mark_line_ends* is True, a hollow circle is drawn at the final point of
-    the 3-box line to signify that the stable on-state vanishes there (the
-    continuation is terminated by an AMOC-on bifurcation).
+    the 3-box and Boussinesq lines. For the 3-box model it marks the endpoint
+    approaching the AMOC-on bifurcation; for Boussinesq it marks the last
+    verified stable ON state, not a certified bifurcation.
 
     *box_drop_n* is the number of highest-CO2 box-model points omitted from that
     panel: 1 drops the collapsed/off-branch terminal (e.g. the 910 ppm point in
@@ -370,6 +371,8 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
                 label="Boussinesq",
                 zorder=3,
             )
+            if mark_line_ends:
+                _mark_line_end(ax, sub_b.dropna(subset=["co2_ppm", "value"]), COL_BOUS)
 
     # ── CLIMBER-X: two broken series ─────────────────────────────────────
     # The long-equilibrium AMOC state changes branch with CO2: it is the
@@ -445,6 +448,7 @@ def main() -> None:
         xlabel=False,
         mark_line_ends=True,
     )
+    ax_amoc.margins(y=0.08)  # Leave room for the offset endpoint circles.
     add_panel_label(ax_amoc, "(a)", x=0.99, ha="right")
 
     ax_sal = fig.add_subplot(gs[0, 1])
@@ -456,7 +460,8 @@ def main() -> None:
         xlabel=False,
         box_drop_n=0,  # show through the terminal on-state step (903 ppm), like (a)
     )
-    add_panel_label(ax_sal, "(b)", x=0.99, ha="right")
+    # Keep the label clear of the box-model rise at the narrower right edge.
+    add_panel_label(ax_sal, "(b)", x=0.02, ha="left")
 
     # Hide the top-row tick labels; the shared x-axis is labelled on the bottom row.
     col_top = {0: ax_amoc, 1: ax_sal}
@@ -493,7 +498,10 @@ def main() -> None:
         if not is_bottom_row:
             plt.setp(ax.get_xticklabels(), visible=False)
 
-        add_panel_label(ax, panel_labels[panel_idx], x=0.99, ha="right")
+        if panel_labels[panel_idx] == "(d)":
+            add_panel_label(ax, panel_labels[panel_idx], x=0.02, ha="left")
+        else:
+            add_panel_label(ax, panel_labels[panel_idx], x=0.99, ha="right")
 
     # Shared legend – placed below figure
     from matplotlib.lines import Line2D
@@ -522,16 +530,24 @@ def main() -> None:
     sources += sorted(BOX_PAPER_DIR.glob("attractors_*ppm.csv"))
     sources += sorted(PLASIM_PAPER_DIR.glob("state_means_*ppm.csv"))
     conversion_provenance = BOUSSINESQ_CSV.with_suffix(".json")
+    conversion_metadata = {}
     if conversion_provenance.is_file():
         sources.append(conversion_provenance)
+        conversion_metadata = json.loads(conversion_provenance.read_text())
     provenance = {
         "source_files_sha256": {str(path): hashlib.sha256(path.read_bytes()).hexdigest()
                                 for path in sources if path.is_file()},
         "plot_script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-        "layout": "Original 2-column, 3-row synthesis layout; original axes, panel labels, sizes and legend",
+        "layout": "Original 2-column, 3-row layout, sizes and legend; CO2 axis follows updated data; labels b and d moved left to avoid curves",
         "boussinesq_units": "Converted paper values share the existing axes; native values retained in input CSV",
         "boussinesq_conversion_provenance": str(conversion_provenance),
-        "boussinesq_co2_coordinate": "heuristic C_ppm = 280 * 2**(gamma / 0.05), not calibrated",
+        "boussinesq_transport_mapping": conversion_metadata.get("transport_mapping", {}),
+        "amoc_endpoint_circles": {
+            "3-box": "Last plotted ON point approaching the AMOC-on bifurcation",
+            "Boussinesq": "Last verified stable ON state; not a certified bifurcation",
+        },
+        "boussinesq_co2_coordinate": conversion_metadata.get("co2_display_relation", "See input CSV provenance"),
+        "boussinesq_co2_is_calibrated": conversion_metadata.get("co2_is_calibrated", False),
         "boussinesq_unavailable_on_gammas": sorted(df_boussinesq.loc[
             df_boussinesq["status"] == "on_reference_unavailable", "gamma"].unique().tolist())
             if df_boussinesq is not None else [],
