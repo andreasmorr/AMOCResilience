@@ -9,9 +9,9 @@ plotting_perturbations.py  –  Multi-model perturbation & readout overview figu
          Salt is conserved internally via the diagnosed Indo-Pacific box, so no
          explicit compensation region is perturbed.
 
-  Col 2  Boussinesq — North Atlantic, Tropical, and Southern compensation boxes
-         (b) Globe   — box footprints as a constant-width Atlantic strip (2-D model)
-         (f) 2D Boussinesq tapered perturbation (lat × depth)
+  Col 2  Boussinesq — North Atlantic and Tropical boxes; compensation elsewhere
+         (b) Globe   — surface footprints as a constant-width Atlantic strip (2-D model)
+         (f) Section — tapered boxes and uniform compensation over their complement
 
   Col 3  CLIMBER-X — North Atlantic & Tropical perturbation boxes, with the entire
          rest of the world ocean as the (global) salt-compensation region
@@ -282,7 +282,7 @@ BOXES_BOUS_NARROW = {
         lat_min=-90.0, lat_max=-31.5,
         lon_min=_SECTION_LON_CTR - _BAND_WIDTH / 2,
         lon_max=_SECTION_LON_CTR + _BAND_WIDTH / 2,
-        depth_max=450.0, color=BOX_COLOR_SOUTH, label="Southern",
+        depth_max=450.0, color=BOX_COLOR_SOUTH, label="Compensation at surface",
     ),
 }
 
@@ -422,14 +422,12 @@ BOUS_Z_MODEL = 0.5 + np.tanh(_q * (_j / BOUS_N - 0.5)) / (2 * np.tanh(_q / 2))
 BOUS_Z_PLOT  = 1.0 - BOUS_Z_MODEL   # 0=surface, 1=bottom (for plotting)
 
 
-# Geographic bounds of Boussinesq boxes (matching Boussinesq_box.py __main__)
+# Geographic bounds of Boussinesq target boxes (matching canonical_model.py)
 # Latitudinal borders snapped to grid cell faces (midpoints between nodes).
 BOUS_NORTH_LO = 3.625           # +40.5°N  (cell face)
 BOUS_NORTH_HI = 5.0             #  90°N
 BOUS_TROP_LO  = 1.625           # −31.5°S  (cell face)
 BOUS_TROP_HI  = 3.625           # +40.5°N  (cell face)
-BOUS_SOUTH_LO = -1.0            #  (below domain → clamped to 90°S)
-BOUS_SOUTH_HI = 1.625           # −31.5°S  (cell face)
 
 # Vertical extent of the finite surface boxes (z-units), matching Boussinesq_box.py:
 # cells with z_model ≥ 1 − BOUS_BOX_DEPTH are inside the box.  0.28449 places the
@@ -437,22 +435,18 @@ BOUS_SOUTH_HI = 1.625           # −31.5°S  (cell face)
 # so the box reaches the ~267 m model level (top 15 levels).
 BOUS_BOX_DEPTH = 0.28449
 
-# Build the actual model so the figure stays in sync with the perturbation logic
-# in AMOCBoussinesq/src/Boussinesq_box.py (finite membership + margin-only cosine
-# taper + interior boost so the box-mean of the field is 1).
+# Use the canonical geometry and quadrature-normalised tapers directly.
+# Compensation is uniform outside both hard target masks, including deep water.
 sys.path.insert(0, str(SCRIPT_DIR / "AMOCBoussinesq" / "src"))
-from Boussinesq_box import BoussinesqBox
+from canonical_model import CanonicalModel
 
-_bous_model = BoussinesqBox(BOUS_M, BOUS_N, 1e-3)
-_bous_model.make_salinity_forcing(0.1)
-_bous_model.register_box("north",    BOUS_NORTH_LO, BOUS_NORTH_HI, box_depth=BOUS_BOX_DEPTH)
-_bous_model.register_box("tropical", BOUS_TROP_LO,  BOUS_TROP_HI,  box_depth=BOUS_BOX_DEPTH)
-_bous_model.register_box("southern", BOUS_SOUTH_LO, BOUS_SOUTH_HI, box_depth=BOUS_BOX_DEPTH)
+_bous_model = CanonicalModel(BOUS_M, BOUS_N, 1e-3)
 
 # Tapered, interior-boosted perturbation fields, shape (M+1, N+1)
 BOUS_NORTH_PERT = _bous_model._box_pert["north"]
 BOUS_TROP_PERT  = _bous_model._box_pert["tropical"]
-BOUS_SOUTH_PERT = _bous_model._box_pert["southern"]
+BOUS_COMPENSATION = 1.0 - np.maximum(_bous_model.boxes["north"],
+                                     _bous_model.boxes["tropical"])
 
 # Convert Boussinesq x to degrees latitude for axis labels
 BOUS_LAT_DEG = BOUS_XX / 5.0 * 180.0 - 90.0    # (21,)
@@ -759,7 +753,7 @@ def draw_section(ax, box_dict, taper=False, depth_max_plot=None, label_depths=Tr
 # Boussinesq 2D panel
 # ---------------------------------------------------------------------------
 
-BOUS_DEPTH_SCALE = 1000.0   # normalised depth 1 corresponds to this many metres
+BOUS_DEPTH_SCALE = 1000.0   # nominal depth for comparison; not a calibrated H
 
 def _bous_lat_deg(x):
     """Boussinesq model latitude coord x ∈ [0, 5] → degrees north, clamped to domain."""
@@ -773,8 +767,8 @@ def draw_boussinesq_panel(ax):
     margin-only cosine taper with the interior boost (box-mean = 1), normalised
     to its peak for display so the taper ramp is visible.  The finite box limits
     (latitude range × surface→box-bottom depth) are drawn as dashed rectangles.
-    Y-axis is in physical metres (z_plot × BOUS_DEPTH_SCALE) to match the shared
-    axis with the meridional section panels.
+    The complementary region is uniformly shaded to show salt compensation.
+    Depth uses a nominal 1000 m basin for the shared section axis.
     """
     from matplotlib.colors import LinearSegmentedColormap as LSC
 
@@ -783,10 +777,10 @@ def draw_boussinesq_panel(ax):
 
     pert_n = BOUS_NORTH_PERT.T   # (N+1, M+1)
     pert_t = BOUS_TROP_PERT.T
-    pert_s = BOUS_SOUTH_PERT.T
+    compensation = BOUS_COMPENSATION.T
 
     for pert, color, zorder in [
-        (pert_s, BOX_COLOR_SOUTH, 2),
+        (compensation, BOX_COLOR_SOUTH, 2),
         (pert_t, BOX_COLOR_TROP,  3),
         (pert_n, BOX_COLOR_NA,    4),
     ]:
@@ -806,7 +800,6 @@ def draw_boussinesq_panel(ax):
     for (x_lo, x_hi), col in [
         ((BOUS_NORTH_LO, BOUS_NORTH_HI), BOX_COLOR_NA),
         ((BOUS_TROP_LO,  BOUS_TROP_HI),  BOX_COLOR_TROP),
-        ((BOUS_SOUTH_LO, BOUS_SOUTH_HI), BOX_COLOR_SOUTH),
     ]:
         lat_lo, lat_hi = _bous_lat_deg(x_lo), _bous_lat_deg(x_hi)
         ax.add_patch(mpatches.Rectangle(

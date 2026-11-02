@@ -19,9 +19,6 @@
 \usepackage{placeins}
 \usepackage{rotating}
 
-% Labels from the main manuscript (requires an up-to-date main.aux)
-\externaldocument{main}
-
 \doublespacing
 \linenumbers
 
@@ -32,6 +29,9 @@
 \newcommand{\psu}{\,\text{psu}}
 \newcommand{\CO}{CO\ensuremath{_2}}
 \newcommand{\dint}{\mathrm{d}}
+
+% Labels from the main manuscript (requires an up-to-date main.aux)
+\externaldocument[][nocite]{main}
 
 % Supplementary numbering: S1, S2, ...
 \renewcommand{\thesection}{S\arabic{section}}
@@ -154,115 +154,129 @@ For Figure~\ref{fig:box-paper}, the basins are evaluated on a regular $60\times6
 \section{Specifics on the Boussinesq model}
 \label{app:boussinesq}
 
-\subsection*{Physical setup}
+\subsection*{Model and forcing}
 
-The model describes a two-dimensional meridional section of a single ocean basin, with non-dimensional latitude $x\in[0,5]$ and depth $z\in[0,1]$. Here $x=0$ is the South Pole, $x=2.5$ the equator, and $x=5$ the North Pole, while $z=0$ is the ocean floor and $z=1$ the surface. For plotting and for the definition of the boxes, we map $x$ to latitude as $x/5\cdot180°-90°$ and $z$ to a nominal depth of $1000(1-z)\,\text{m}$. The zonally averaged flow is incompressible and treated in the Boussinesq approximation, in which density variations are retained only in the buoyancy term. The model goes back to \citet{Dijkstra1997AMOCPDE} and was recently studied as a stochastic partial differential equation by \citet{Soons2025MostLikelyNoiseinduced} and \citet{Esclapez2026ConstructingEfficientScore}. The velocity field is derived from a streamfunction $\psi(x,z,t)$ via
+We use the latitude-depth Boussinesq model of \citet{Dijkstra1997AMOCPDE}, studied more recently by \citet{Soons2025MostLikelyNoiseinduced} and \citet{Esclapez2026ConstructingEfficientScore}. It represents an incompressible fluid in a rectangular basin, with horizontal coordinate $x\in[0,a]$, $a=5$, and vertical coordinate $z\in[0,1]$ increasing from the floor to the surface. The latitude label is $180x/a-90°$. These coordinates describe an idealised meridional section; they do not prescribe an Atlantic basin volume. Temperature $T$, salinity $S$, and vorticity $\omega$ are prognostic, while the streamfunction $\psi$ is diagnosed from vorticity. With
 \begin{equation}
-  u = \frac{\partial \psi}{\partial z}, \qquad w = -\frac{\partial \psi}{\partial x},
+  u=\partial_z\psi,\qquad w=-\partial_x\psi,\qquad \omega=-\nabla^2\psi,
   \label{eq:vel_bous}
 \end{equation}
-where $u$ is the meridional and $w$ the vertical velocity, and the vorticity is $\omega=-\nabla^2\psi$. The non-dimensional parameters and the numerical resolution are given in Table~\ref{tab:boussinesq-params}.
+the non-dimensional equations are
+\begin{align}
+  \partial_t T+u\partial_x T+w\partial_z T
+    &=\nabla^2T+\frac{h(z)}{\tau_T}(T_s^\gamma-T), \label{eq:bous_T}\\
+  \partial_t S+u\partial_x S+w\partial_z S
+    &=\mathrm{Le}^{-1}\nabla^2S+\frac{h(z)}{\tau_S}S_s^\gamma, \label{eq:bous_S}\\
+  \partial_t\omega+u\partial_x\omega+w\partial_z\omega
+    &=\mathrm{Pr}\nabla^2\omega+\mathrm{Pr}\,\mathrm{Ra}\,\partial_x(T-S), \label{eq:bous_omega}\\
+  \nabla^2\psi&=-\omega. \label{eq:bous_psi}
+\end{align}
+The factor $h(z)=\exp[-(1-z)/\delta]$ confines thermal restoring and salinity forcing to the surface layer. The buoyancy term represents a linear equation of state: warmer or fresher water is lighter. All walls are impermeable and stress-free ($\psi=\omega=0$), with homogeneous Neumann conditions for $T$ and $S$. Surface exchange is represented by the interior source terms, not by an additional boundary flux. Stochastic forcing and hosing are switched off.
 
 \begin{table}[t]
   \centering
-  \caption{Non-dimensional parameters and numerical settings of the Boussinesq model.}
+  \caption{Parameters and numerical settings of the Boussinesq experiment. All quantities are non-dimensional.}
   \label{tab:boussinesq-params}
   \begin{tabular}{lll}
     \toprule
     Symbol & Value & Meaning \\
     \midrule
-    $\mathrm{Pr}$   & $1$              & Prandtl number ($\nu/\kappa_T$) \\
-    $\mathrm{Le}$   & $1$              & Lewis number ($\kappa_T/\kappa_S$) \\
-    $\mathrm{Ra}$   & $4\times10^4$    & Rayleigh number \\
-    $a$             & $5$              & Domain length (pole to pole) \\
-    $\delta$        & $0.05$           & Surface boundary-layer thickness \\
-    $\tau_T$        & $0.1$            & Thermal restoring time scale \\
-    $\tau_S$        & $1.0$            & Salinity flux time scale \\
-    $\beta_s$       & $0.1$, $-0.1$, $0$ & Hemispheric salinity-forcing asymmetry (spin-ups, perturbed runs) \\
-    $\alpha_s$      & $1$              & Hydrological intensification coefficient \\
-    $\gamma$        & $0,0.01,\ldots,0.06$ & Arctic-amplification parameter \\
-    $M,\,N$         & $20,\,40$        & Grid intervals ($21\times41$ points) \\
-    $\Delta t$      & $10^{-3}$        & Time step \\
+    $\mathrm{Pr}$ & $1$ & Prandtl number, $\nu/\kappa_T$ \\
+    $\mathrm{Le}$ & $1$ & Lewis number, $\kappa_T/\kappa_S$ \\
+    $\mathrm{Ra}$ & $4\times10^4$ & Rayleigh number \\
+    $a$ & $5$ & Horizontal domain length \\
+    $\delta$ & $0.05$ & Surface penetration thickness \\
+    $\tau_T,\,\tau_S$ & $0.1,\,1$ & Thermal restoring and salinity forcing scales \\
+    $\beta_s$ & $0$ & Hemispheric asymmetry in the experiment \\
+    $M,\,N$ & $20,\,40$ & Grid intervals ($21\times41$ nodes) \\
+    $\Delta t$ & $0.001$ & Integration step \\
+    $d$ & $0.28449$ & Fractional depth of both perturbation boxes \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-\subsection*{Governing equations}
-
-Temperature $T$, salinity $S$, and vorticity $\omega$ evolve according to coupled advection--diffusion equations with surface forcing:
-\begin{align}
-  \frac{\partial T}{\partial t} + u\frac{\partial T}{\partial x} + w\frac{\partial T}{\partial z}
-    &= \nabla^2 T + \frac{h(z)}{\tau_T}\bigl(T_s^\gamma(x) - T\bigr), \label{eq:bous_T}\\[4pt]
-  \frac{\partial S}{\partial t} + u\frac{\partial S}{\partial x} + w\frac{\partial S}{\partial z}
-    &= \frac{1}{\mathrm{Le}}\nabla^2 S + \frac{h(z)}{\tau_S}\,S_s^\gamma(x), \label{eq:bous_S}\\[4pt]
-  \frac{\partial \omega}{\partial t} + u\frac{\partial \omega}{\partial x} + w\frac{\partial \omega}{\partial z}
-    &= \mathrm{Pr}\,\nabla^2\omega + \mathrm{Pr}\cdot\mathrm{Ra}\,\frac{\partial}{\partial x}(T - S), \label{eq:bous_omega}\\[4pt]
-  \nabla^2\psi &= -\omega. \label{eq:bous_psi}
-\end{align}
-The profile $h(z)=\exp(-(1-z)/\delta)$ confines the surface forcing to a thin layer below the surface. Temperature is relaxed towards a prescribed surface profile on the time scale $\tau_T$. Salinity is instead forced by a fixed flux, reflecting that surface salinity is set by the freshwater exchange with the atmosphere rather than by relaxation to a reference value. After each time step, the salinity field is rescaled so that its domain mean remains exactly one. The baroclinic term $\mathrm{Pr}\cdot\mathrm{Ra}\,\partial_x(T-S)$ in the vorticity equation encodes a linear equation of state with density anomalies $\rho\propto-(T-S)$. Horizontal density contrasts thus generate overturning vorticity, and $\mathrm{Pr}\cdot\mathrm{Ra}=4\times10^4$ controls the strength of this driving relative to viscous dissipation.
-
-The unmodified surface temperature profile is
+The unmodified temperature profile is warmest at the equator,
 \begin{equation}
-  T_s(x) = \tfrac{1}{2}\!\left[\cos\!\left(\tfrac{2\pi x}{a} - \pi\right) + 1\right],
+  T_s(x)=\tfrac12[\cos(2\pi x/a-\pi)+1].
   \label{eq:Ts}
 \end{equation}
-with $T_s=0$ at both poles and $T_s=1$ at the equator. The surface salinity flux is
+We vary a single parameter $\gamma$ through the forcing path
+\begin{align}
+  T_s^\gamma(x)&=(1-\gamma)T_s(x)+\gamma\overline{T_s}, \label{eq:Tgamma}\\
+  S_s^\gamma(x)&=(1+\gamma)\,3.5\cos(2\pi x/a-\pi)
+                 -\beta_s\sin(\pi x/a-\pi/2), \label{eq:Sgamma}
+\end{align}
+where $\overline{T_s}$ is the arithmetic mean over the horizontal grid. Increasing $\gamma$ reduces the equator-to-pole temperature contrast and strengthens salt addition in the tropics and salt removal at high latitudes. All reference states and perturbation trajectories use $\beta_s=0$, and the imposed profiles remain fixed throughout each integration. This is a prescribed combination of reduced thermal contrast and increased freshwater forcing, rather than a calibrated response to atmospheric \CO{}.
+
+For comparison with the other models, we label this path by
 \begin{equation}
-  S_s(x) = 3.5\cos\!\left(\tfrac{2\pi x}{a} - \pi\right) - \beta_s\sin\!\left(\tfrac{\pi x}{a} - \tfrac{\pi}{2}\right).
-  \label{eq:Ss}
-\end{equation}
-The cosine term represents net evaporation in the tropics and net precipitation at high latitudes. The $\beta_s$ term breaks the hemispheric symmetry; for $\beta_s>0$, it adds freshwater in the northern and removes it in the southern high latitudes.
-
-\subsection*{Boundary conditions and numerical discretisation}
-
-All walls are stress-free and impermeable, so $\psi=\omega=0$ on the boundary, and there is no flux of heat or salt through any wall ($\partial_n T=\partial_n S=0$). The surface forcing enters only through the interior source terms weighted by $h(z)$. The latitude coordinate is discretised on a uniform grid, and the depth coordinate on a stretched grid
-\begin{equation}
-  z_j = \tfrac{1}{2} + \frac{\tanh\!\bigl(3(j/N - \tfrac{1}{2})\bigr)}{2\tanh(3/2)}, \qquad j = 0,\ldots,N,
-  \label{eq:zgrid}
-\end{equation}
-which refines the resolution near the surface and the floor. Spatial derivatives are approximated by second-order finite differences. Time stepping is semi-implicit with $\Delta t=10^{-3}$: diffusion and thermal relaxation are treated implicitly and advection explicitly. Each implicit step, as well as the Poisson problem for $\psi$, takes the form of a Sylvester equation that is solved with the Bartels--Stewart algorithm. All experiments in this paper are deterministic; the stochastic salinity forcing available in the model is switched off.
-
-The AMOC strength is diagnosed as the mean streamfunction over a small fixed window in the northern basin interior ($x\in\{3.5,3.75\}$, i.e.\ $36°$--$45°\text{N}$, and $z\approx0.42$--$0.54$). With this convention, the active northern-sinking circulation has positive values and the reversed circulation negative values.
-
-\subsection*{Arctic amplification and \CO{} mapping}
-
-To move the model through different climate states, the surface temperature forcing is blended towards its spatial mean,
-\begin{equation}
-  T_s^\gamma(x) = (1-\gamma)\,T_s(x) + \gamma\overline{T_s},
-  \label{eq:Tgamma}
-\end{equation}
-where $\overline{T_s}$ is the mean of the unmodified profile on the model grid. At $\gamma=0$ the forcing is unchanged, while increasing $\gamma$ reduces the equator-to-pole temperature contrast and thereby the thermal driving of the overturning in \eqref{eq:bous_omega}. The same parameter intensifies the hydrological cycle. We scale the symmetric part of the salinity flux \eqref{eq:Ss} and leave the asymmetry unchanged,
-\begin{equation}
-  S_s^\gamma(x) = (1 + \alpha_s\gamma)\,3.5\cos\!\left(\tfrac{2\pi x}{a} - \pi\right) - \beta_s\sin\!\left(\tfrac{\pi x}{a} - \tfrac{\pi}{2}\right),
-  \label{eq:Sgamma}
-\end{equation}
-with $\alpha_s=1$. The evaporation--precipitation amplitude would thus double at $\gamma=1$ and increases by $6\%$ at the largest value $\gamma=0.06$ used here. Increasing $\gamma$ therefore weakens the thermal driving and strengthens the freshwater forcing at the same time.
-
-We relate $\gamma$ to the atmospheric \CO{} concentration $C$ through the logarithmic forcing law and an estimate of polar sea-surface amplification. If the global-mean surface warming is $\text{ECS}\cdot\log_2(C/C_0)$ and the high-latitude sea surface warms by a factor $\alpha_\text{sst}$ more, the equator-to-pole temperature difference $\Delta T_0$ is reduced by $(\alpha_\text{sst}-1)\,\text{ECS}\,\log_2(C/C_0)$. Expressing this reduction as a fraction of $\Delta T_0$ gives
-\begin{equation}
-  \gamma(C) = \frac{(\alpha_\text{sst}-1)\,\text{ECS}}{\Delta T_0}\log_2\!\left(\frac{C}{C_0}\right)
-  = 0.05\log_2\!\left(\frac{C}{280\,\text{ppm}}\right).
+  C=280\,\text{ppm}\;2^{\gamma/0.05}.
   \label{eq:co2_gamma}
 \end{equation}
-We use the IPCC AR6 best estimate $\text{ECS}=3.0\,°\text{C}$ per \CO{} doubling \citep{Forster2021IPCCAR6Ch7}, a pre-industrial Atlantic equator-to-pole sea-surface temperature difference of $\Delta T_0=30\,°\text{C}$, and $\alpha_\text{sst}=1.5$. The latter is deliberately smaller than the near-fourfold amplification of Arctic surface air temperature \citep{Rantanen2022ArcticHasWarmed}, since sea-ice insulation and ocean heat uptake strongly damp the warming at the ocean surface. With these choices, $\gamma=0$ corresponds to $C_0=280\,\text{ppm}$ and $\gamma=0.05$ to $560\,\text{ppm}$. The sweep covers $\gamma=0,0.01,\ldots,0.06$, corresponding to 280, 322, 369, 424, 488, 560, and $643\,\text{ppm}$. A sweep at $\gamma=0.07$ ($739\,\text{ppm}$) is not used: there, the model is close to the end of the on-branch, two thirds of the perturbed runs do not settle within the integration limit, and an additional weak cluster of final states appears.
+Thus a nominal \CO{} doubling reduces the thermal contrast by $5\%$ and increases the salinity-flux amplitude by $5\%$. The logarithmic form is motivated by radiative forcing, but its coefficient and the coupling of the two surface forcings are modelling choices. We request $\gamma=0,0.01,\ldots,0.10$, followed by $0.102$, $0.104$, $0.106$, $0.107$, $0.108$, $0.1085$, $0.109$, $0.1095$, and $0.11$. Stable on-state references are verified at the first 17 values, through $\gamma=0.1085$ (about $1260\,\text{ppm}$). Stationary correction fails at the remaining three values, for which we report no on-state resilience measures. This failure does not establish the existence or location of a bifurcation.
 
-\subsection*{Reference states and perturbation experiments}
+\subsection*{Discretisation and salt conservation}
 
-For each $\gamma$, two spin-ups of $20\,000$ time steps (20 model time units) are run with weak hemispheric asymmetry, $\beta_s=0.1$ and $\beta_s=-0.1$. Starting from each of them, the model is then integrated under symmetric forcing ($\beta_s=0$) until it settles. The $\beta_s=0.1$ spin-up leads to the active (on) state and the $\beta_s=-0.1$ spin-up to the reversed (off) state. All perturbed runs use $\beta_s=0$.
+The horizontal grid is uniform, and the vertical nodes are
+\begin{equation}
+  z_j=\tfrac12+\frac{\tanh[3(j/N-\tfrac12)]}{2\tanh(3/2)},\qquad j=0,\ldots,N.
+  \label{eq:zgrid}
+\end{equation}
+Finite differences approximate spatial derivatives. Diffusion and thermal restoring are implicit, advection is explicit, and the buoyancy torque uses the updated temperature and salinity. The constant linear systems are solved using cached separable factors. Tensor-product trapezoidal weights on the actual grid define volume averages, box means and field norms. No cosine-of-latitude factor is used, since the model domain is rectangular.
 
-The perturbation boxes are sets of whole grid cells. The North Atlantic box covers $x\in[3.625,5]$ (approximately $40.5°$--$90°\text{N}$), the Tropical Atlantic box $x\in[1.625,3.625]$ (approximately $31.5°\text{S}$--$40.5°\text{N}$), and the Southern box the remaining domain south of $x=1.625$. All three boxes contain the cells with $z\geq1-0.28449$, which are the top 15 grid levels and reach down to about $284\,\text{m}$ on the nominal depth scale. The perturbation field of each box is tapered with a cosine profile at the interior box edges, while edges at domain walls (the poles and the surface) remain sharp. Each field is normalised so that its mean over the box equals one. Adding a perturbation of amplitude $\Delta S$ thus changes the box-mean salinity by exactly $\Delta S$. The salt added to or removed from the North and Tropical Atlantic boxes is compensated in the Southern box, which leaves the domain-mean salinity unchanged.
+After each provisional salinity step, a spatially uniform correction restores the previous salt inventory:
+\begin{equation}
+  S^{n+1}=\widetilde S^{n+1}+\langle S^n\rangle_V-\langle\widetilde S^{n+1}\rangle_V.
+\end{equation}
+Here $\langle\cdot\rangle_V$ denotes the quadrature-weighted domain mean, initialised to one for salinity. This correction preserves salinity gradients. A negative non-dimensional salinity is not itself a numerical failure, since the additive origin of $S$ does not affect the dynamics; nonfinite fields and failed integrations are recorded separately.
 
-The basin-mapping ensemble applies the $20\times20$ grid of amplitudes $(\Delta S_N,\Delta S_T)\in[-2,2]^2\psu{}$ to the salinity field of the $\beta_s=0.1$ spin-up, whose box salinities lie within $0.1\psu{}$ of the $\beta_s=0$ on-state for all $\gamma$. Temperature, vorticity, and streamfunction are set to zero in these initial conditions. Each run is integrated under $\beta_s=0$ for at most $500\,000$ time steps (500 model time units), and is stopped as soon as its North and Tropical box salinities come within $0.05\psu{}$ of either the on- or the off-state. Runs that reach the integration limit or develop negative salinity are excluded; for $\gamma\leq0.06$, all 400 runs at every forcing level are valid. The final streamfunction values are clustered by gap detection (gap threshold $0.2$ model units), the cluster with the largest streamfunction is identified as the on-state, and each run is assigned to the nearest cluster. The on-state location in the salinity plane is the median final box salinity of the runs assigned to it.
+\subsection*{Equilibria and local resilience}
 
-Basin volume is the fraction of valid runs assigned to the on-state. Mean convergence time is the average, over these runs, of the first time at which the box salinities come within $0.05\psu{}$ of the on-state location. Minimal critical shock is the smallest salinity-plane distance between the on-state location and the initial condition of a run that ends in the off-state. Between $\gamma=0$ and $\gamma=0.06$, the basin volume rises from $0.71$ to $0.79$. This change is carried by 31 grid cells that switch from the off- to the on-state basin, while no cell switches in the opposite direction.
+At $\gamma=0$, an asymmetric seed is generated with $\beta_s=-0.1$ for 20 time units and then equilibrated under the symmetric forcing. Continuation follows this northern-sinking on-state to larger $\gamma$, using time integration and, near the upper end, Newton correction. The reversed state is obtained by reflecting the on-state; its residual is checked separately, and its linear stability follows from hemispheric symmetry. A separate symmetric seed at $\gamma=0.06$ locates a haline two-cell state, which is continued through the requested forcing values. It has polar upwelling and equatorial sinking, distinguishing it from the thermal two-cell circulation. On-state and two-cell candidates must satisfy a stationarity tolerance of $10^{-9}$ and have a converged tangent calculation with a negative leading growth rate. Time-based settling is capped at 100 units and Newton correction at 20 iterations.
 
-\subsection*{Local linear stability}
+Local resilience is calculated from the derivative $J_{\Delta t}$ of the implemented timestep map at the on-state. Vorticity, salinity and temperature are the independent variables; streamfunction follows from the Poisson equation. Perturbations obey the wall conditions and have zero total salt, excluding the neutral conserved-salt mode. For the leading multipliers $\mu_k$ of $J_{\Delta t}$, we compute
+\begin{equation}
+  r=-\max_k\operatorname{Re}\!\left(\frac{\log\mu_k}{\Delta t}\right).
+\end{equation}
+The tangent action is checked against finite differences, and eigenvalue residuals are retained. This measure describes infinitesimal recovery in the full model, independently of the salinity projection used for plotting.
 
-Local resilience is estimated from a separate, smaller ensemble. For each $\gamma$, the $\beta_s=0$ on-state is located by settling from the $\beta_s=0.1$ spin-up with temperature, vorticity, and streamfunction set to zero. For $\gamma>0$, the on-state of the previous $\gamma$ is used as the starting point instead. Eight perturbations of radius $0.5\psu{}$ are then applied to the complete on-state, in directions spaced by $45°$ in the $(\Delta S_N,\Delta S_T)$ plane and again with Southern-box compensation. In contrast to the basin-mapping ensemble, temperature, vorticity, and streamfunction are kept, so that the trajectories describe the relaxation of the full state. Each trajectory is integrated for 5000 time steps. Directions whose final distance from the equilibrium exceeds the initial radius are discarded. After skipping the first 500 steps, the box-salinity deviations $x=(\delta S_N,\delta S_T)$ are sampled every 200 steps ($\Delta t_{\mathrm{obs}}=0.2$ model time units), and a $2\times2$ matrix $M$ is fitted by least squares to all pairs $(x_t,x_{t+\Delta t_{\mathrm{obs}}})$. The generator $A=\log(M)/\Delta t_{\mathrm{obs}}$ gives the characteristic return time $\tau=-1/\max\mathrm{Re}(\lambda(A))$, and the local resilience is $1/\tau$.
+\subsection*{Salinity perturbations}
 
-\subsection*{Physical scaling}
+The North Atlantic mask covers $x\in[3.625,5]$ ($40.5°$--$90°\text{N}$), and the Tropical mask covers $x\in[1.625,3.625]$ ($31.5°\text{S}$--$40.5°\text{N}$). Both contain nodes with $z\geq1-d$, where $d=0.28449$. Each perturbation tapers to zero at interior edges, with cosine taper widths $0.5$ horizontally and $d/3$ vertically; edges at the poles and surface remain sharp. The tapered fields $b_N,b_T$ are normalised to have weighted mean one within their respective masks. For prescribed model-unit box-mean anomalies $a_N,a_T$, we apply
+\begin{equation}
+  \delta S=a_Nb_N+a_Tb_T+c\,\mathbf{1}_R,
+  \qquad c=-\frac{\langle a_Nb_N+a_Tb_T\rangle_V}{\langle\mathbf{1}_R\rangle_V},
+\end{equation}
+where $R$ is the complement of both masks, including deeper water. This conserves total salt while leaving the two requested box-mean changes intact. Both masks are excluded from compensation even when one perturbation amplitude is zero.
 
-Model salinities are converted to practical salinity by the affine map $S\,[\psu{}]=10.72735\,s+25.45555$. It is fixed by requiring that the North Atlantic and Tropical Atlantic boxes of the pre-industrial ($\gamma=0$) $\beta_s=0.1$ spin-up have salinities of $35.0$ and $36.5\psu{}$. Perturbation amplitudes convert with the slope alone, so the $\pm2\psu{}$ grid corresponds to $\pm0.186$ model units and the $0.05\psu{}$ convergence radius to $0.0047$ model units. The streamfunction is converted to Sverdrups by mapping the AMOC diagnostic of the same pre-industrial spin-up, $\psi\approx1.517$ model units, to $18\Sv{}$, which gives a factor of $11.864\Sv{}$ per model unit. The AMOC strength shown in Figure~\ref{fig:synthesis} is that of the $\beta_s=0$ on-state, which on this scale increases from $16.0\Sv{}$ at $280\,\text{ppm}$ to $19.0\Sv{}$ at $643\,\text{ppm}$. Time is reported on a year-proxy scale of 100 years per model time unit. On this scale, the spin-ups last 2000 years, the basin-mapping runs are limited to $50\,000$ years, and the local-stability trajectories last 500 years with observations every 20 years. Local resilience is correspondingly divided by 100.
+The grid contains 20 equally spaced anomalies from $-2$ to $+2\psu{}$ in each displayed coordinate, giving 400 trajectories per available on-state and 6800 trajectories in total. An additional zero-perturbation control checks each reference and is excluded from these statistics. With $\phi_*=(\omega_*,S_*,T_*,\psi_*)$ denoting the full on-state under the same forcing, every trajectory starts from
+\begin{equation}
+  \phi(0)=(\omega_*,S_*+\delta S,T_*,\psi_*).
+\end{equation}
+Only salinity changes instantaneously; the existing temperature field and circulation are retained.
+
+\subsection*{Classification and finite-amplitude resilience}
+
+Trajectories are observed for at least 30 time units and may continue to 500, with diagnostics every $0.25$ units and stopping checks every 5 units. We compare each trajectory with the verified full-field equilibria using
+\begin{equation}
+  D(\phi,\phi_*)=\max_{f\in\{\omega,S,T,\psi\}}
+       \frac{\sqrt{\langle(f-f_*)^2\rangle_V}}{s_f}.
+\end{equation}
+The scales $s_f$ are fixed at their $\gamma=0$ on-state RMS values, with floors $(1,0.05,0.05,0.1)$ in the displayed field order; the salinity scale uses $S-\langle S\rangle_V$. The same scales are used at every $\gamma$. An endpoint is assigned to a target only if $D<0.002$ at every observation in the final two time units. All 6800 grid trajectories satisfy this criterion by time 30, with no unresolved or failed cases.
+
+The convergence time is the first observation in the final uninterrupted sequence inside the on-state neighbourhood. Its mean is conditional on returning to the on-state; a transition to another attractor is not counted as an on-state return. Because the returning set changes with forcing, we also compare the 13 perturbations that return at every available $\gamma$. Their mean return time likewise decreases and then increases, so the trend is not solely a consequence of changing basin membership. First-entry and dwell times, and analogous distances in the two-box plane with a $0.05\psu{}$ threshold, are retained as sensitivity checks. Entry times have $0.25$-unit resolution, and residence through the observed endpoint does not prove residence for all future time.
+
+The basin fraction is the number of on-state returns divided by all 400 prescribed grid points. Unresolved or failed runs would remain in that denominator. The minimal-critical-shock estimate is the smallest $\sqrt{(\Delta S_N)^2+(\Delta S_T)^2}$ among grid points certified to reach another stable state. It is an upper bound on the minimum escape amplitude within this perturbation family. For the verified points with $\gamma\geq0.106$, it equals the smallest sampled nonzero radius, $2\sqrt{2}/19\psu{}\approx0.149\psu{}$, so the apparent plateau reflects grid resolution. Both measures describe a two-dimensional section of the basin; they do not measure its full volume or its closest boundary in the complete state space.
+
+\subsection*{Readouts and reporting scales}
+
+The northern overturning diagnostic is $q_N=\max_z[-\psi(x_{26},z)]$, with $x_{26}=5(26+90)/180$ and linear interpolation in $x$. The minus sign gives a positive value for northern sinking. This readout vanishes for both the reversed and haline two-cell equilibria, although both retain substantial circulation; their identities are determined from the full fields. The salinity coordinates are weighted means over the two hard masks.
+
+We use fixed reporting conversions $S_{\rm psu}=10.72734565\,S+25.45554682$ and $q_{\rm Sv}=(18/1.517147512)q_N$. Salinity differences use the slope alone, so the $\pm2\psu{}$ perturbations correspond to approximately $\pm0.1864$ model units. These are display conventions, not a dimensional calibration of the basin. They are held fixed across forcing values and states; the resulting on-state transport decreases from $45.68$ to $40.58\Sv{}$ over the verified range.
+
+One model time unit is reported as 100 model years, and rates are divided by 100. In the diffusive scaling of \citet{Soons2025MostLikelyNoiseinduced}, time is scaled by $H^2/\kappa_T$. The nominal depth $H=1000\,\mathrm{m}$ used in the geometry illustration would therefore imply $\kappa_T\approx3.17\times10^{-4}\,\mathrm{m}^2\,\mathrm{s}^{-1}$ for this time convention. This is a conditional interpretation, not an independently established ocean diffusivity. Absolute transports, salinities, times and \CO{} labels should be read with these choices in mind.
+
+Figure~\ref{fig:boussinesq-paper} compares $\gamma=0$ and $0.09$ (280 and $975\,\text{ppm}$). Its four shared anomaly pairs are $(-1.3684,-1.3684)$, $(1.1579,1.3684)$, $(1.7895,1.7895)$ and $(1.5789,0.1053)\psu{}$. The eight trajectories are replayed from their saved initial fields, recording every integration step through time 30. These dense records reproduce the original observations and endpoints; no smoothing is applied. The ensemble return-time statistics retain their original sampling interval. Basin colours distinguish on (blue), reversed (red) and two-cell (purple) outcomes; the $0.05\psu{}$ circles are visual guides, not the convergence criterion. The reported trends remain conditional on the forcing path, perturbation depth, compensation geometry and numerical resolution.
 
 \section{Specifics on the CLIMBER-X model}
 \label{app:climber-x}
