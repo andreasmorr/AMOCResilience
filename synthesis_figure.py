@@ -20,19 +20,24 @@ Reads:
                  ellipsoid_volume_1sigma, ellipse_long_axis_1sigma,
                  local_resilience, mean_amoc_strength_Sv
 
-    AMOCBoussinesq/data/resilience/resilience_vs_gamma_boussinesq.csv
-        columns: co2_ppm, gamma, measure, value, attractor
+    AMOCBoussinesq/data/paper/resilience_vs_gamma_boussinesq.csv
+        columns: co2_ppm, gamma, measure, value, attractor, units, ...
+        Paper values use the shared plotting-unit conversions; native values
+        and assumptions are retained in the export and its provenance JSON.
 
     AMOCClimberX/data/paper/resilience_vs_co2_climberx.csv
         columns: co2_ppm, measure, value, attractor
 
-Output: plots/synthesis_figure.png
+Outputs: plots/synthesis_figure.png, .pdf and .json
 
 Run from the AMOCResilience umbrella directory:
     python synthesis_figure.py
 """
 from __future__ import annotations
 
+import argparse
+import hashlib
+import json
 import re
 import sys
 from pathlib import Path
@@ -46,7 +51,10 @@ import pandas as pd
 # Paths
 # ---------------------------------------------------------------------------
 
-UMBRELLA  = Path(__file__).resolve().parent
+_path_parser = argparse.ArgumentParser(add_help=False)
+_path_parser.add_argument("--umbrella", type=Path, default=Path(__file__).resolve().parent)
+_path_args, _ = _path_parser.parse_known_args()
+UMBRELLA = _path_args.umbrella.resolve()
 sys.path.insert(0, str(UMBRELLA))
 
 from amoc_plot_style import (
@@ -59,13 +67,13 @@ FIGURE_WIDTH = 6.30   # inches (single-column \textwidth: A4, 2.5 cm margins)
 
 BOX_CSV        = UMBRELLA / "AMOCBox"        / "data" / "paper" / "resilience_vs_co2_boxmodel.csv"
 PLASIM_CSV     = UMBRELLA / "AMOCPlaSim"    / "data" / "results" / "resilience_metrics.csv"
-BOUSSINESQ_CSV = UMBRELLA / "AMOCBoussinesq" / "data" / "resilience" / "resilience_vs_gamma_boussinesq.csv"
+BOUSSINESQ_CSV = UMBRELLA / "AMOCBoussinesq" / "data" / "paper" / "resilience_vs_gamma_boussinesq.csv"
 CLIMBERX_CSV   = UMBRELLA / "AMOCClimberX"  / "data" / "paper" / "resilience_vs_co2_climberx.csv"
 
 # Maximum parameter values; rows beyond these are excluded (None = no cutoff)
 BOX_MAX_CO2      = None
 BOX_MAX_GAMMA    = None
-BOUS_MAX_GAMMA   = 0.06   # exclude γ=0.07 (past AMOC-on bifurcation; ~67% of runs time out)
+BOUS_MAX_GAMMA   = None
 BOUS_MAX_CO2     = None
 PLASIM_MAX_CO2   = None
 CLIMBERX_MAX_CO2 = None
@@ -170,6 +178,13 @@ def load_boussinesq() -> pd.DataFrame | None:
         print(f"[Boussinesq] CSV not found: {BOUSSINESQ_CSV}")
         return None
     df = pd.read_csv(BOUSSINESQ_CSV)
+    required = {"gamma", "co2_ppm", "measure", "value", "units", "status", "model_value", "model_units"}
+    if not required.issubset(df.columns):
+        raise ValueError("Use the canonical paper export with converted and native-value columns")
+    if not df["status"].isin(["complete", "on_reference_unavailable"]).all():
+        raise ValueError("Boussinesq experiment has unfinished parameter slices")
+    if df.loc[df["status"] == "on_reference_unavailable", "value"].notna().any():
+        raise ValueError("Unavailable ON-reference rows must have blank values")
     if BOUS_MIN_GAMMA is not None and "gamma" in df.columns:
         df = df[df["gamma"] >= BOUS_MIN_GAMMA]
     if BOUS_MAX_GAMMA is not None and "gamma" in df.columns:
@@ -384,6 +399,13 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
 
 
 def main() -> None:
+    global BOUSSINESQ_CSV
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--umbrella", type=Path, default=UMBRELLA)
+    parser.add_argument("--boussinesq-csv", type=Path, default=BOUSSINESQ_CSV)
+    parser.add_argument("--output", type=Path, default=UMBRELLA / "plots/synthesis_figure.png")
+    args = parser.parse_args()
+    BOUSSINESQ_CSV = args.boussinesq_csv.resolve()
     apply_style()
 
     df_box       = load_box_model()
@@ -491,9 +513,31 @@ def main() -> None:
         framealpha=0.8,
     )
 
-    out_path = UMBRELLA / "plots" / "synthesis_figure.png"
-    (UMBRELLA / "plots").mkdir(exist_ok=True)
+    out_path = args.output.resolve().with_suffix(".png")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    fig.savefig(out_path.with_suffix(".pdf"), bbox_inches="tight")
+    sources = [BOX_CSV, PLASIM_CSV, BOUSSINESQ_CSV, CLIMBERX_CSV,
+               UMBRELLA / "amoc_plot_style.py"]
+    sources += sorted(BOX_PAPER_DIR.glob("attractors_*ppm.csv"))
+    sources += sorted(PLASIM_PAPER_DIR.glob("state_means_*ppm.csv"))
+    conversion_provenance = BOUSSINESQ_CSV.with_suffix(".json")
+    if conversion_provenance.is_file():
+        sources.append(conversion_provenance)
+    provenance = {
+        "source_files_sha256": {str(path): hashlib.sha256(path.read_bytes()).hexdigest()
+                                for path in sources if path.is_file()},
+        "plot_script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "layout": "Original 2-column, 3-row synthesis layout; original axes, panel labels, sizes and legend",
+        "boussinesq_units": "Converted paper values share the existing axes; native values retained in input CSV",
+        "boussinesq_conversion_provenance": str(conversion_provenance),
+        "boussinesq_co2_coordinate": "heuristic C_ppm = 280 * 2**(gamma / 0.05), not calibrated",
+        "boussinesq_unavailable_on_gammas": sorted(df_boussinesq.loc[
+            df_boussinesq["status"] == "on_reference_unavailable", "gamma"].unique().tolist())
+            if df_boussinesq is not None else [],
+        "other_model_values": "unchanged",
+    }
+    out_path.with_suffix(".json").write_text(json.dumps(provenance, indent=2) + "\n")
     print(f"Figure saved: {out_path}")
     plt.close(fig)
 
