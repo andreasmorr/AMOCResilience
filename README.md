@@ -17,9 +17,11 @@ and wording. The root files collect the paper draft and the cross-model figures.
 ### [AMOCBox](https://github.com/andreasmorr/AMOCBox)
 Resilience analysis of the reduced three-box AMOC salinity model. The current
 paper outputs follow a linear parameter continuation from 1xCO2 (280 ppm)
-toward and beyond the 2xCO2 parameter vector in 14 ppm steps, with one extra
-point at 903 ppm. Complete paper-facing resilience metrics are exported from
-280 through 903 ppm; the on-state is lost before the next step (910 ppm). At
+toward and beyond the 2xCO2 parameter vector in 14 ppm steps, with two extra
+points at 903, 905.8 and 906.64 ppm. Complete paper-facing resilience metrics are
+exported from 280 through 906.64 ppm; the on-state loses stability in a Hopf bifurcation
+near 908 ppm and is not found at the next step (910 ppm). The synthesis figure
+shows the 905.8 and 906.64 ppm points only in the basin-volume and critical-shock panels. At
 each step, 10,000 initial conditions are sampled uniformly in a +/-2 psu box
 centred on the on-state. The submodule contributes AMOC strength, local
 resilience, convergence time, basin volume, and minimal critical shock metrics

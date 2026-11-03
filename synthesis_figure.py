@@ -45,6 +45,7 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 # ---------------------------------------------------------------------------
@@ -81,6 +82,15 @@ CLIMBERX_MAX_CO2 = None
 # Minimum parameter values; rows below these are excluded (None = no cutoff)
 BOX_MIN_CO2      = None
 BOX_MIN_GAMMA    = None
+
+# Box-model CO2 levels (ppm) shown only in the basin-volume and minimal-critical-
+# shock panels (e, f). 905.8 and 906.64 ppm (t = 2.235, 2.238) lie just before
+# the Hopf bifurcation (~908 ppm) where the on-state basin collapses; they are
+# kept out of the other panels. Attractor files are tagged with rounded CO2
+# (906, 907 ppm), so matching uses BOX_CO2_MATCH_TOL.
+BOX_BASIN_ONLY_CO2 = (905.8, 906.64)
+BOX_BASIN_ONLY_MEASURES = {"basin_stability", "minimal_critical_shock_magnitude"}
+BOX_CO2_MATCH_TOL = 0.5
 BOUS_MIN_GAMMA   = None
 BOUS_MIN_CO2     = None
 PLASIM_MIN_CO2   = None
@@ -288,9 +298,28 @@ def _mark_line_end(ax, sub, color):
     )
 
 
+def _add_up_arrow(ax, x, y, color, gap_frac=0.02, length_frac=0.13):
+    """Upward arrow starting just above the data point (x, y), signalling an
+    omitted further increase. Call after all series are plotted: the y-axis is
+    extended (and then fixed) so the arrow fits inside the panel. Gap and length
+    are fractions of the final y-range."""
+    ax.autoscale_view()
+    bottom, top = ax.get_ylim()
+    need = gap_frac + length_frac + 0.02          # arrow plus a small margin
+    new_top = max(top, (y - need * bottom) / (1.0 - need))
+    ax.set_ylim(bottom, new_top)
+    span = new_top - bottom
+    ax.annotate(
+        "", xy=(x, y + (gap_frac + length_frac) * span), xytext=(x, y + gap_frac * span),
+        arrowprops=dict(arrowstyle="-|>", color=color, lw=1.5, mutation_scale=9,
+                        shrinkA=0, shrinkB=0),
+        zorder=6,
+    )
+
+
 def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
                 ylabel, panel_title, df_box, df_plasim, df_boussinesq, df_climberx,
-                xlabel=False, mark_line_ends=False, box_drop_n=1):
+                xlabel=False, mark_line_ends=False, box_drop_n=1, box_arrow=False):
     """Plot a single resilience-measure panel onto *ax*.
 
     When *mark_line_ends* is True, a hollow circle is drawn at the final point of
@@ -301,9 +330,21 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
     *box_drop_n* is the number of highest-CO2 box-model points omitted from that
     panel: 1 drops the collapsed/off-branch terminal (e.g. the 910 ppm point in
     AMOC strength), 0 shows every on-state point, and 2 truncates one step
-    earlier (used for convergence time, whose near-bifurcation values explode)."""
+    earlier (used for convergence time, whose near-bifurcation values explode).
+
+    When *box_arrow* is True, an upward arrow in the 3-box colour is drawn from
+    the last plotted box-model point to signal the omitted further increase."""
 
     box_tail = slice(None, -box_drop_n) if box_drop_n > 0 else slice(None)
+    arrow_at = None
+
+    # Remove the near-bifurcation box-model point(s) from every panel except (e, f),
+    # before *box_drop_n* is applied, so the remaining truncation is unchanged.
+    if df_box is not None and box_measure not in BOX_BASIN_ONLY_MEASURES:
+        near = np.zeros(len(df_box), dtype=bool)
+        for c in BOX_BASIN_ONLY_CO2:
+            near |= np.abs(df_box["co2_ppm"].to_numpy(dtype=float) - c) <= BOX_CO2_MATCH_TOL
+        df_box = df_box[~near]
 
     # ── Box model line ────────────────────────────────────────────────────
     if df_box is not None and box_measure is not None:
@@ -323,6 +364,8 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
             )
             if mark_line_ends:
                 _mark_line_end(ax, sub, COL_ON)
+            if box_arrow:
+                arrow_at = (sub["co2_ppm"].values[-1], sub["value"].values[-1])
         else:
             # Try without attractor filter (e.g. amoc_strength_sv)
             sub_all = df_box[df_box["measure"] == box_measure].sort_values("co2_ppm").iloc[box_tail]
@@ -337,6 +380,8 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
                 )
                 if mark_line_ends:
                     _mark_line_end(ax, sub_all, COL_ON)
+                if box_arrow:
+                    arrow_at = (sub_all["co2_ppm"].values[-1], sub_all["value"].values[-1])
 
     # ── PlaSim points ─────────────────────────────────────────────────────
     if df_plasim is not None and plasim_col is not None and plasim_col in df_plasim.columns:
@@ -394,6 +439,9 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
                 color=COL_CLIMBERX, lw=1.5, marker=marker, markersize=ms,
                 zorder=4, label=lbl,
             )
+
+    if arrow_at is not None:
+        _add_up_arrow(ax, *arrow_at, COL_ON)
 
     ax.set_ylabel(ylabel, fontsize=8)
     ax.tick_params(labelsize=7)
@@ -458,7 +506,8 @@ def main() -> None:
         "Salinity gradient (psu)", "Salinity gradient",
         box_sal_df, plasim_sal_df, df_boussinesq, df_climberx,
         xlabel=False,
-        box_drop_n=0,  # show through the terminal on-state step (903 ppm), like (a)
+        box_drop_n=6,  # end at 826 ppm; the steep near-bifurcation rise is signalled by an arrow
+        box_arrow=True,
     )
     # Keep the label clear of the box-model rise at the narrower right edge.
     add_panel_label(ax_sal, "(b)", x=0.02, ha="left")
@@ -470,8 +519,9 @@ def main() -> None:
 
     # ── Rows 1-2: the four resilience-measure panels, shared x per column ─────
     # How many trailing box-model points to omit per measure: local resilience,
-    # basin volume and critical shock show every on-state point through the
-    # terminal 903 ppm step (0); convergence time is truncated one step earlier
+    # basin volume and critical shock show every on-state point (0) -- through
+    # 903 ppm for local resilience, and through 906.64 ppm for basin volume and
+    # critical shock (see BOX_BASIN_ONLY_CO2); convergence time is truncated one step earlier
     # (2) because its near-bifurcation values explode and compress the panel.
     BOX_DROP_N = {
         "local_resilience": 0,
@@ -479,6 +529,9 @@ def main() -> None:
         "minimal_critical_shock_magnitude": 0,
         "mean_convergence_time": 2,
     }
+    # Measures whose truncated box-model curve gets an upward arrow signalling
+    # the omitted near-bifurcation increase.
+    BOX_ARROW = {"mean_convergence_time"}
     panel_labels = ["(c)", "(d)", "(e)", "(f)"]
     for panel_idx, (box_measure, bous_measure, cx_measure, plasim_col, ylabel, panel_title) in enumerate(PANELS):
         row = 1 + panel_idx // ncols
@@ -494,6 +547,7 @@ def main() -> None:
             df_box, df_plasim, df_boussinesq, df_climberx,
             xlabel=is_bottom_row,
             box_drop_n=BOX_DROP_N.get(box_measure, 1),
+            box_arrow=(box_measure in BOX_ARROW),
         )
         if not is_bottom_row:
             plt.setp(ax.get_xticklabels(), visible=False)
