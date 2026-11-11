@@ -66,6 +66,10 @@ from amoc_plot_style import (
 
 FIGURE_WIDTH = 6.30   # inches (single-column \textwidth: A4, 2.5 cm margins)
 
+# All basin fractions refer to the same +/-2 psu square in two coordinates.
+BASIN_SAMPLE_HALF_WIDTH_PSU = 2.0
+BASIN_SAMPLE_AREA_PSU2 = (2 * BASIN_SAMPLE_HALF_WIDTH_PSU) ** 2
+
 BOX_CSV        = UMBRELLA / "AMOCBox"        / "data" / "paper" / "resilience_vs_co2_boxmodel.csv"
 PLASIM_CSV     = UMBRELLA / "AMOCPlaSim"    / "data" / "results" / "resilience_metrics.csv"
 BOUSSINESQ_CSV = UMBRELLA / "AMOCBoussinesq" / "data" / "paper" / "resilience_vs_gamma_boussinesq.csv"
@@ -121,7 +125,7 @@ PANELS = [
         "local_resilience",
         "local_resilience",
         "local_resilience",
-        "Local resilience",
+        r"Local resilience (yr$^{-1}$)",
         "Local resilience",
     ),
     (
@@ -129,7 +133,7 @@ PANELS = [
         "mean_convergence_time",
         "mean_convergence_time",
         "mean_conv_time_yr",
-        "Convergence time",
+        "Convergence time (yr)",
         "Convergence time",
     ),
     (
@@ -137,7 +141,7 @@ PANELS = [
         "basin_volume",
         "basin_volume",
         None,
-        "Basin volume",
+        r"Basin volume (psu$^2$)",
         "Basin volume",
     ),
     (
@@ -145,7 +149,7 @@ PANELS = [
         "min_critical_shock",
         "min_critical_shock",
         "mean_edge_dist",
-        "Minimal critical shock",
+        "Minimal critical shock (psu)",
         "Critical shock",
     ),
 ]
@@ -160,6 +164,10 @@ def load_box_model() -> pd.DataFrame | None:
         print("  Run amoc3box_co2_continuation.jl first.")
         return None
     df = pd.read_csv(BOX_CSV)
+    # One internal box-model salinity unit is 10 psu (AMOCBox/PAPERINFO.md).
+    shock = df["measure"] == "minimal_critical_shock_magnitude"
+    df.loc[shock, "value"] *= 10.0
+    df.loc[df["measure"] == "basin_stability", "value"] *= BASIN_SAMPLE_AREA_PSU2
     if BOX_MIN_CO2 is not None:
         df = df[df["co2_ppm"] >= BOX_MIN_CO2]
     if BOX_MAX_CO2 is not None:
@@ -195,6 +203,9 @@ def load_boussinesq() -> pd.DataFrame | None:
         raise ValueError("Boussinesq experiment has unfinished parameter slices")
     if df.loc[df["status"] == "on_reference_unavailable", "value"].notna().any():
         raise ValueError("Unavailable ON-reference rows must have blank values")
+    basin = df["measure"] == "basin_volume"
+    df.loc[basin, "value"] *= BASIN_SAMPLE_AREA_PSU2
+    df.loc[basin, "units"] = "psu^2"
     if BOUS_MIN_GAMMA is not None and "gamma" in df.columns:
         df = df[df["gamma"] >= BOUS_MIN_GAMMA]
     if BOUS_MAX_GAMMA is not None and "gamma" in df.columns:
@@ -211,6 +222,7 @@ def load_climberx() -> pd.DataFrame | None:
         print(f"[CLIMBER-X] CSV not found: {CLIMBERX_CSV}")
         return None
     df = pd.read_csv(CLIMBERX_CSV)
+    df.loc[df["measure"] == "basin_volume", "value"] *= BASIN_SAMPLE_AREA_PSU2
     if CLIMBERX_MIN_CO2 is not None:
         df = df[df["co2_ppm"] >= CLIMBERX_MIN_CO2]
     if CLIMBERX_MAX_CO2 is not None:
@@ -549,6 +561,8 @@ def main() -> None:
             box_drop_n=BOX_DROP_N.get(box_measure, 1),
             box_arrow=(box_measure in BOX_ARROW),
         )
+        if box_measure == "basin_stability":
+            ax.set_yticks(np.linspace(0, BASIN_SAMPLE_AREA_PSU2, 5))
         if not is_bottom_row:
             plt.setp(ax.get_xticklabels(), visible=False)
 
@@ -588,6 +602,9 @@ def main() -> None:
     if conversion_provenance.is_file():
         sources.append(conversion_provenance)
         conversion_metadata = json.loads(conversion_provenance.read_text())
+    climber_provenance = CLIMBERX_CSV.with_suffix(".json")
+    if climber_provenance.is_file():
+        sources.append(climber_provenance)
     provenance = {
         "source_files_sha256": {str(path): hashlib.sha256(path.read_bytes()).hexdigest()
                                 for path in sources if path.is_file()},
@@ -605,7 +622,23 @@ def main() -> None:
         "boussinesq_unavailable_on_gammas": sorted(df_boussinesq.loc[
             df_boussinesq["status"] == "on_reference_unavailable", "gamma"].unique().tolist())
             if df_boussinesq is not None else [],
-        "other_model_values": "unchanged",
+        "local_resilience_anomalies": "Boussinesq and CLIMBER-X: perturbed minus unperturbed control at matching times",
+        "climberx_analysis_provenance": str(climber_provenance) if climber_provenance.is_file() else None,
+        "panel_units": {
+            "local_resilience": "yr^-1 for 3-box, Boussinesq and CLIMBER-X; PlaSim proxy in (1e-3 psu)^-1",
+            "mean_convergence_time": "yr",
+            "basin_volume": "psu^2; estimated basin area within the sampled square",
+            "min_critical_shock": "psu",
+        },
+        "basin_area_conversion": {
+            "models": ["3-box", "Boussinesq", "CLIMBER-X"],
+            "half_width_psu": BASIN_SAMPLE_HALF_WIDTH_PSU,
+            "sampled_area_psu2": BASIN_SAMPLE_AREA_PSU2,
+            "formula": "basin fraction multiplied by sampled area",
+            "estimator": "Original sampling weights retained; source CSVs store fractions",
+        },
+        "box_critical_shock_conversion": {"factor": 10.0, "from": "internal salinity units", "to": "psu"},
+        "other_model_values": "Read from the recorded source CSVs; 3-box critical shocks converted to psu and basin fractions to psu^2 for display",
     }
     out_path.with_suffix(".json").write_text(json.dumps(provenance, indent=2) + "\n")
     print(f"Figure saved: {out_path}")
