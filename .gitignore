@@ -1,5 +1,4 @@
 .DS_Store
-Pitch.pptx
 __pycache__/
 *.pyc
 
@@ -14,10 +13,14 @@ __pycache__/
 *.out
 *.run.xml
 *.synctex.gz
+*.synctex*
 *.toc
+main.pdf
+SI.pdf
+main_diff.pdf
+.claude/
 
-# Generated figures (the two used in main.tex stay tracked)
+# Keep the two cross-model manuscript figures; model figures live in submodules.
 plots/*
-!plots/box_traj_315_10ky_gc_narrow.png
 !plots/synthesis_figure.png
 !plots/perturbations_overview.png

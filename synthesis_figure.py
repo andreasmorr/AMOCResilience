@@ -58,6 +58,7 @@ _path_args, _ = _path_parser.parse_known_args()
 UMBRELLA = _path_args.umbrella.resolve()
 sys.path.insert(0, str(UMBRELLA))
 
+from paper_figures import publish_paper_figure
 from amoc_plot_style import (
     COL_ON,
     COL_BOUS, COL_CLIMBERX, COL_PLASIM,
@@ -641,6 +642,8 @@ def main() -> None:
         "other_model_values": "Read from the recorded source CSVs; 3-box critical shocks converted to psu and basin fractions to psu^2 for display",
     }
     out_path.with_suffix(".json").write_text(json.dumps(provenance, indent=2) + "\n")
+    if out_path == (UMBRELLA / "plots/synthesis_figure.png").resolve():
+        publish_paper_figure(out_path)
     print(f"Figure saved: {out_path}")
     plt.close(fig)
 

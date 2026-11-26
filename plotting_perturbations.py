@@ -61,6 +61,7 @@ PLOTS_DIR  = SCRIPT_DIR / "plots"
 
 sys.path.insert(0, str(SCRIPT_DIR))
 from amoc_plot_style import apply_style, add_panel_label, savefig_pdf
+from paper_figures import publish_paper_figure
 
 # ---------------------------------------------------------------------------
 # Sizing for a single-column A4 (2.5 cm margins) LaTeX document.
@@ -1237,6 +1238,7 @@ def main():
     # font points set above land on the page essentially as specified.
     out_path = PLOTS_DIR / "perturbations_overview.png"
     fig.savefig(out_path, dpi=300)
+    publish_paper_figure(out_path)
     print(f"Figure saved: {out_path}")
     plt.close(fig)
 
