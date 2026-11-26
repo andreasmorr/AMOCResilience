@@ -15,7 +15,7 @@ plotting_perturbations.py  –  Multi-model perturbation & readout overview figu
 
   Col 3  CLIMBER-X — North Atlantic & Tropical perturbation boxes
          (c) Globe   — tapered NA/Trop boxes
-         (g) Section — tapered shallow boxes (0–105 m)
+         (g) Section — tapered 13-layer North Atlantic and 11-layer Tropical boxes
 
   Compensation regions are omitted from every panel; the manuscript describes
   the model-specific salt-conservation procedures.
@@ -298,19 +298,37 @@ BOXES_SHALLOW = {
                   depth_max=150.0, color=BOX_COLOR_SOUTH, label="WOOD_SOUTH_SHALLOW"),
 }
 
-# Current-standard Atlantic-mask boxes (box_na / box_trop / box_south).
-# NA and Trop select the Atlantic basin mask (basin="atlantic") intersected with
-# a latitude band; the longitudinal edges are coastlines (no longitude limits).
-# All three use the top 4 ocean layers (0–105 m).  Latitude tests use grid
-# borders so the boxes tile exactly (NA 35°N–80°N, Trop 35°S–35°N, South <35°S).
-BOXES_CLIMBERX = {
-    "NA":    dict(lat_min=35.0,  lat_max=80.0,  lon_min=-180.0, lon_max=180.0,
-                  depth_max=105.0, basin="atlantic", color=BOX_COLOR_NA,    label="box_na"),
-    "Trop":  dict(lat_min=-35.0, lat_max=35.0,  lon_min=-180.0, lon_max=180.0,
-                  depth_max=105.0, basin="atlantic", color=BOX_COLOR_TROP,  label="box_trop"),
-    "South": dict(lat_min=-90.0, lat_max=-35.0, lon_min=-180.0, lon_max=180.0,
-                  depth_max=105.0, basin=None,       color=BOX_COLOR_SOUTH, label="box_south"),
-}
+# Production CLIMBER-X geometry (AMOCClimberX commit b7a4db5, "New deep boxes").
+# Depth cutoffs select whole layers by centre: North 1000 m, Tropical 600 m.
+# Keep separate faces for this panel; ZRO_EDGES also serves the 3-box schematic.
+# As in AMOCClimberX/plot_perturbations.py's standard-grid fallback, reconstruct
+# approximate faces from rounded centres, use cos(latitude) area weights and
+# assume full-depth water in the Atlantic basin mask (no bathymetry here).
+from AMOCClimberX.src.perturbation import BOX_NA as CLIMBER_BOX_NA, BOX_TROP as CLIMBER_BOX_TROP
+from AMOCClimberX.src.restart import _build_region_mask as _climber_region_mask
+
+CLIMBER_REGIONS = {"NA": CLIMBER_BOX_NA, "Trop": CLIMBER_BOX_TROP}
+CLIMBER_DEPTH_EDGES = np.zeros(ZRO.size + 1)
+for _k, _centre in enumerate(ZRO):
+    CLIMBER_DEPTH_EDGES[_k + 1] = 2 * _centre - CLIMBER_DEPTH_EDGES[_k]
+CLIMBER_DZ = np.diff(CLIMBER_DEPTH_EDGES)
+CLIMBER_AREA = np.broadcast_to(np.cos(np.deg2rad(LAT))[:, None],
+                                (LAT.size, LON.size))
+BOXES_CLIMBERX, CLIMBER_MASKS, CLIMBER_FIELDS = {}, {}, {}
+for _key, _region in CLIMBER_REGIONS.items():
+    _rows = np.flatnonzero((LAT >= _region.lat_min) & (LAT <= _region.lat_max))
+    BOXES_CLIMBERX[_key] = dict(
+        lat_min=LAT_EDGES[_rows[0]], lat_max=LAT_EDGES[_rows[-1] + 1],
+        lon_min=-180., lon_max=180., depth_max=_region.depth_max,
+        basin="atlantic", color=BOX_COLOR_NA if _key == "NA" else BOX_COLOR_TROP,
+        label="box_na" if _key == "NA" else "box_trop")
+    _kwargs = dict(lat=LAT, lon=LON, lev=ZRO, region=_region, dz=CLIMBER_DZ,
+                   ocn_area=CLIMBER_AREA, basin_sel=ATL_MASK,
+                   wet_mask=np.ones((ZRO.size, LAT.size, LON.size), dtype=bool))
+    CLIMBER_MASKS[_key] = _climber_region_mask(**_kwargs, taper=False)
+    CLIMBER_FIELDS[_key] = _climber_region_mask(**_kwargs, taper=True)
+# Display the production-normalised fields relative to each box's peak.
+CLIMBER_COLOURS = {key: field / field.max() for key, field in CLIMBER_FIELDS.items()}
 
 TAPER_MARGIN_CELLS  = 2
 TAPER_MARGIN_LAYERS = 2
@@ -432,18 +450,17 @@ BOUS_NORTH_HI = 5.0             #  90°N
 BOUS_TROP_LO  = 1.625           # −31.5°S  (cell face)
 BOUS_TROP_HI  = 3.625           # +40.5°N  (cell face)
 
-# Vertical extent of the finite surface boxes (z-units), matching Boussinesq_box.py:
-# cells with z_model ≥ 1 − BOUS_BOX_DEPTH are inside the box.  0.28449 places the
-# box bottom on the grid cell face at ~284 m (BOUS_DEPTH_SCALE = 1000 m),
-# so the box reaches the ~267 m model level (top 15 levels).
-BOUS_BOX_DEPTH = 0.28449
-
 # Use the canonical geometry and quadrature-normalised tapers directly.
 # Compensation is uniform outside both hard target masks, including deep water.
 sys.path.insert(0, str(SCRIPT_DIR / "AMOCBoussinesq" / "src"))
 from canonical_model import CanonicalModel
+from paper_units import NOMINAL_DEPTH_M
 
 _bous_model = CanonicalModel(BOUS_M, BOUS_N, 1e-3)
+# Surface-box bottoms are grid faces; masks and display rectangles use the same
+# independent depths as perturbations and volume-weighted salinity readouts.
+BOUS_NORTH_DEPTH = _bous_model.north_box_depth
+BOUS_TROP_DEPTH = _bous_model.tropical_box_depth
 
 # Tapered, interior-boosted perturbation fields, shape (M+1, N+1)
 BOUS_NORTH_PERT = _bous_model._box_pert["north"]
@@ -794,7 +811,7 @@ def draw_section(ax, box_dict, taper=False, depth_max_plot=None, label_depths=Tr
 # Boussinesq 2D panel
 # ---------------------------------------------------------------------------
 
-BOUS_DEPTH_SCALE = 1000.0   # nominal depth for comparison; not a calibrated H
+BOUS_DEPTH_SCALE = NOMINAL_DEPTH_M   # reporting conversion only; not a calibrated H
 
 def _bous_lat_deg(x):
     """Boussinesq model latitude coord x ∈ [0, 5] → degrees north, clamped to domain."""
@@ -809,7 +826,7 @@ def draw_boussinesq_panel(ax):
     to its peak for display so the taper ramp is visible.  The finite box limits
     (latitude range × surface→box-bottom depth) are drawn as dashed rectangles.
     Only the two target boxes are shaded; compensation is described in the text.
-    Depth uses a nominal 1000 m basin for the shared section axis.
+    Depth uses a nominal 4000 m basin for the shared section axis.
     """
     from matplotlib.colors import LinearSegmentedColormap as LSC
 
@@ -835,11 +852,11 @@ def draw_boussinesq_panel(ax):
                       shading="nearest", zorder=zorder)
 
     # Finite box limits: latitude range × [surface, box bottom] as dashed rectangles
-    box_bottom_m = BOUS_BOX_DEPTH * BOUS_DEPTH_SCALE
-    for (x_lo, x_hi), col in [
-        ((BOUS_NORTH_LO, BOUS_NORTH_HI), BOX_COLOR_NA),
-        ((BOUS_TROP_LO,  BOUS_TROP_HI),  BOX_COLOR_TROP),
+    for (x_lo, x_hi), box_depth, col in [
+        ((BOUS_NORTH_LO, BOUS_NORTH_HI), BOUS_NORTH_DEPTH, BOX_COLOR_NA),
+        ((BOUS_TROP_LO,  BOUS_TROP_HI), BOUS_TROP_DEPTH, BOX_COLOR_TROP),
     ]:
+        box_bottom_m = box_depth * BOUS_DEPTH_SCALE
         lat_lo, lat_hi = _bous_lat_deg(x_lo), _bous_lat_deg(x_hi)
         ax.add_patch(mpatches.Rectangle(
             (lat_lo, 0.0), lat_hi - lat_lo, box_bottom_m,
@@ -848,7 +865,7 @@ def draw_boussinesq_panel(ax):
 
     ax.set_facecolor("#f0f0f0")
     ax.set_xlim(-90, 90)
-    # ylim set externally to match shared axis (1000 m); depth increases downward
+    # ylim set externally to the shared 1060 m limit; depth increases downward
     ax.set_xlabel("Latitude", fontsize=FS_LABEL)
     ax.set_ylabel("Depth (m)", fontsize=FS_LABEL)
 
@@ -863,16 +880,9 @@ def draw_boussinesq_panel(ax):
 
 # ---------------------------------------------------------------------------
 # PlaSim ocean grid  (2.5° zonal grid, 22 depth levels) and box footprints.
-# The CLIMBER-X boxes (BOXES_CLIMBERX) are re-created on the PlaSim grid as
-# closely as the different cell boundaries allow.  No tapering.
-#
-#   Latitude:  PlaSim cell centres at ±88.75° in 2.5° steps → cell faces on
-#              every 2.5° line.  The CLIMBER-X box borders (35°N, 80°N, 35°S)
-#              are multiples of 5° and therefore sit exactly on PlaSim faces,
-#              so the boxes tile the same latitude bands with no gaps/overlap.
-#   Depth:     CLIMBER-X box bottom is 105 m (top 4 layers).  The closest
-#              PlaSim cell face is 100 m (top 2 layers: centres 25 m, 75 m),
-#              which is used as the PlaSim box bottom.
+# PlaSim readouts use their own 2.5-degree grid and depth bounds below;
+# they are independent of the CLIMBER-X perturbation layer selection.
+# The 35-degree latitude boundaries coincide with PlaSim cell faces.
 # ---------------------------------------------------------------------------
 PLASIM_LAT   = np.arange(-88.75, 90.0, 2.5)    # (72,) cell centres, °N
 PLASIM_LON   = np.arange(-178.75, 180.0, 2.5)  # (144,) cell centres, °E
@@ -1007,21 +1017,88 @@ def draw_plasim_section(ax, box_dict, depth_max_plot=1000.0, fill=True,
 # CLIMBER-X globe & section: NA/Trop perturbation boxes only
 # ---------------------------------------------------------------------------
 
+def _climber_colour_map(key):
+    cmap = LinearSegmentedColormap.from_list(
+        "climber_" + key, ["#ffffff", BOXES_CLIMBERX[key]["color"]])
+    cmap.set_bad((0, 0, 0, 0))
+    return cmap
+
+
 def draw_climberx_globe(ax):
-    """CLIMBER-X globe: tapered North Atlantic and Tropical boxes only."""
-    for key in ("NA", "Trop"):
-        box = BOXES_CLIMBERX[key]
-        w3  = make_3d_mask(box, taper=True)
-        vm  = vert_mask(box["depth_max"])
-        w2  = w3[vm, :, :].mean(axis=0)
-        _pcolor_globe(ax, w2, box["color"])
+    """Surface footprint of the production North Atlantic and Tropical tapers."""
+    for key, values in CLIMBER_COLOURS.items():
+        rgba = mcolors.to_rgba(BOXES_CLIMBERX[key]["color"])
+        # Match the 0.65 peak opacity of the other full-width globe footprints.
+        cmap = LinearSegmentedColormap.from_list(
+            "climber_globe_" + key, [(*rgba[:3], 0.0), (*rgba[:3], 0.65)], N=256)
+        cmap.set_bad((0, 0, 0, 0))
+        kwargs = {"transform": _PC_TRANSFORM} if HAS_CARTOPY else {}
+        ax.pcolormesh(LON_EDGES, LAT_EDGES,
+                      np.ma.masked_where(values[0] <= 0, values[0]),
+                      cmap=cmap, vmin=0, vmax=1,
+                      shading="flat", zorder=3, rasterized=True, **kwargs)
+    if HAS_CARTOPY:
+        ax.add_feature(cfeature.LAND.with_scale("50m"), facecolor=_LAND_COLOR,
+                       edgecolor="none", zorder=4)
+        ax.coastlines(resolution="50m", linewidth=LW_COAST,
+                       color="#666666", zorder=5)
 
 
-def draw_climberx_section(ax, depth_max_plot=300):
-    """CLIMBER-X section: tapered North Atlantic and Tropical boxes (0–105 m)."""
-    pert = {k: BOXES_CLIMBERX[k] for k in ("NA", "Trop")}
-    draw_section(ax, pert, taper=True, depth_max_plot=depth_max_plot,
-                 label_depths=False, box_limits=True)
+def _climber_boundary_segments(mask):
+    """Trace selected cells on their latitude/depth faces, without interpolation."""
+    segments = []
+    for k, j in np.argwhere(mask):
+        left, right = LAT_EDGES[j:j + 2]
+        top, bottom = CLIMBER_DEPTH_EDGES[k:k + 2]
+        if j == 0 or not mask[k, j - 1]:
+            segments.append([(left, top), (left, bottom)])
+        if j == mask.shape[1] - 1 or not mask[k, j + 1]:
+            segments.append([(right, top), (right, bottom)])
+        if k == 0 or not mask[k - 1, j]:
+            segments.append([(left, top), (right, top)])
+        if k == mask.shape[0] - 1 or not mask[k + 1, j]:
+            segments.append([(left, bottom), (right, bottom)])
+    return segments
+
+
+def draw_climberx_section(ax, depth_max_plot=1060):
+    """Selected whole layers and production tapers, bounded by their cell faces."""
+    from matplotlib.collections import LineCollection
+    from shapely.geometry import MultiLineString
+    from shapely.ops import linemerge
+
+    for key, values in CLIMBER_COLOURS.items():
+        field = values[:, :, SECTION_IDX]
+        ax.pcolormesh(LAT_EDGES, CLIMBER_DEPTH_EDGES,
+                      np.ma.masked_where(field <= 0, field),
+                      cmap=_climber_colour_map(key), vmin=0, vmax=1,
+                      shading="flat", rasterized=True)
+        segments = _climber_boundary_segments(CLIMBER_MASKS[key][:, :, SECTION_IDX])
+        # Join collinear cell edges so each straight boundary has one dash
+        # pattern. Orient them consistently to align overlapping box borders.
+        groups = {}
+        for start, end in segments:
+            group = ("vertical", start[0]) if start[0] == end[0] else ("horizontal", start[1])
+            groups.setdefault(group, []).append((start, end))
+        paths = []
+        for pieces in groups.values():
+            boundary = linemerge(MultiLineString(pieces))
+            lines = [boundary] if boundary.geom_type == "LineString" else list(boundary.geoms)
+            for line in lines:
+                coords = np.asarray(line.coords)
+                paths.append(coords if tuple(coords[0]) < tuple(coords[-1]) else coords[::-1])
+        ax.add_collection(LineCollection(paths,
+                                        colors=BOXES_CLIMBERX[key]["color"],
+                                        linewidths=LW_BOX, linestyles="--"))
+    ax.set_xlim(-90, 90)
+    ax.set_ylim(depth_max_plot, -5)
+    ax.set_facecolor("#f0f0f0")
+    ticks = np.arange(-90, 91, 45)
+    ax.set_xticks(ticks)
+    ax.set_xticklabels([f"{abs(t)}°{'N' if t > 0 else 'S'}" if t else "0°"
+                        for t in ticks], fontsize=FS_TICK)
+    ax.set_xlabel("Latitude", fontsize=FS_LABEL)
+    ax.tick_params(length=2, width=.5, pad=1.5)
 
 
 # ---------------------------------------------------------------------------
@@ -1108,7 +1185,7 @@ def main():
     add_panel_label(ax, panel_labels_top[2], fontsize=FS_PANEL)
 
     ax = axes_bot[2]
-    draw_climberx_section(ax, depth_max_plot=300)
+    draw_climberx_section(ax, depth_max_plot=1060)
     ax.set_ylabel("Depth (m)", fontsize=FS_LABEL)
     add_panel_label(ax, panel_labels_bot[2], y=0.04, va="bottom", fontsize=FS_PANEL)
 
@@ -1131,7 +1208,7 @@ def main():
 
     # ── Shared y-axis for all bottom panels (depth axis, surface at top) ──
     for ax in axes_bot:
-        ax.set_ylim(1005, -5)
+        ax.set_ylim(1060, -5)
     # Only the leftmost panel (e) keeps the y-axis label and tick labels;
     # f, g, h suppress both.
     for ax in axes_bot[1:]:
