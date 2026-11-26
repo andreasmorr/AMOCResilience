@@ -24,3 +24,7 @@ main_diff.pdf
 plots/*
 !plots/synthesis_figure.png
 !plots/perturbations_overview.png
+
+# Keep the synthesis vector figure and input/provisional-result provenance.
+!plots/synthesis_figure.pdf
+!plots/synthesis_figure.json

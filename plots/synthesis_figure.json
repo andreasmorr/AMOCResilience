@@ -1,0 +1,190 @@
+{
+  "source_files_sha256": {
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/resilience_vs_co2_boxmodel.csv": "a6f10d86a7ed54009e513cb09a0c660e0cb6f3bc3510d2fc630d5a6f68e33671",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCPlaSim/data/results/resilience_metrics.csv": "95c8257b92d1cb1fd013132258278d42dafddf8874196a4c713942a427fbc653",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBoussinesq/data/paper/resilience_vs_gamma_boussinesq.csv": "0f86874c5ecb113281efdd2f2fd58a3de3877bddebe867de4b70b37c5d7e9379",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCClimberX/results/deep_readout/resilience_all_nominal5000_20261126/resilience_metrics.csv": "ea21a48977857dbc2636736e177a787b3b5c7b14db04eb9db2032ecc3770b7dd",
+    "/Users/andreasmorr/Projects/AMOCResilience/amoc_plot_style.py": "8f13051c25df357af378133880acd3b26d86a4ee7a3ae766e9a701832ef9b1ce",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_280ppm.csv": "ab25982294df6e0055b17e96cf8d56afaf9803bb7bdc10521e459495aacd7e4a",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_294ppm.csv": "851f4bc261b0d44ade8502bcef47e3243505aeb44a64b09a785f117ea73c7848",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_308ppm.csv": "60c12c5e2a653bd4c3811902fb62930dab36399888ab37c7e463e730a01c49b2",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_322ppm.csv": "42d31e9dab796ca732a8e26650b75267d3853208e3414770164cd059299a3a13",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_336ppm.csv": "6fc8e4f435a5db231377ec0ca356523948c495eef12842d6a2e8964232b67aba",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_350ppm.csv": "1a16a212d7d99dd54e1634b6b61f883fd2b8a281f07d01fb361c457e9ad34403",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_364ppm.csv": "1aa67967f2120276e988fdab9735b086765e135fa9d30c644c4fd59d64126def",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_378ppm.csv": "55a07f4841fd78f8ce4ad6d92eedd30efd9724b28786b6ed1167c1870cb29c6a",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_392ppm.csv": "e60a5b215a4e343d712da82f37f54b40315fb86ef5a2c033e41611617aa2c0ea",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_406ppm.csv": "547ce74bb6cd80415f40684b2a0fc930f8d1dc030856995c3dbbeef60ce40c3c",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_420ppm.csv": "ed9c7c379ad5c5c0e06937f0448bb9d822c8c98ca0f832b21995882a326d7f32",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_434ppm.csv": "fd58cb3c6a3bdab1bf1a0b92a5ae8e265331ca65504719380d03fb7f280a2da3",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_448ppm.csv": "f63043a6d54d30a59a6229d004dbb4e0ba8a80cadeb9627d8dc57e50daafb282",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_462ppm.csv": "aa868c826e16e606ee16f5c744519605d1e4992d9a0879b33529096bdad4a067",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_476ppm.csv": "ed0219cacfb61e85dca95cc17f4e083af10ebea47a9c179757b4922b4deb58e4",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_490ppm.csv": "20dedfc83052fa03461298361e016e24f8d996da1a18e342983cbaec81c62103",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_504ppm.csv": "00cb22bb06a1fe7f317dd4e7852ad3fe62495f3cfed8c372d5c334de161e2a53",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_518ppm.csv": "7447fccc4efc7167b8e6908ed3469df1273c7e356fb37c02661a1684362ae913",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_532ppm.csv": "4cddd3264233da8a2176919c9de10faf2f0e03869165db193ab102a0c37050f1",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_546ppm.csv": "31e248d95ba27f22915c2b1b1544422bd7e7c35a7164d26168114795df6aea45",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_560ppm.csv": "9ae2f4b036cf14c898175c9ca02b51c6d177238c69345f42d7c59a869003c736",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_574ppm.csv": "8f271b23090a7705f731a9b09200dcab1b84b150bdffcb05b552a0c0c6705a6c",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_588ppm.csv": "e619699c717b0aa4c0c523a2c302c047ae5220e8a5b48627e56409ccf8cfb921",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_602ppm.csv": "71df522bc05834dc615e0aacb83d6bdda322fc797dfa4f73c6fe2a73de628f11",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_616ppm.csv": "055e36e66cf713f243331b9973b600af95adae162cf7d7c7133d96d559012a38",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_630ppm.csv": "b377c300db95a9c025a85f61fe944706ac508575bf4640269ab2a6a98ed474ef",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_644ppm.csv": "4eb188e6b61003bb8babdf808054b670576272a6804408cb83d992722711bcfd",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_658ppm.csv": "2e04d29667ebf6903a64a70c78e076a8b8be9d48fd8b2e5b810097e9bbe63517",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_672ppm.csv": "551cfc91dfce106905eb2d0245ff2e9897b40776e7d311bbbb7a3c42ccbb4a92",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_686ppm.csv": "5268cab31d229db357dd678bfc27da35ab77534a1c9383b3c5a21fe70b13c972",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_700ppm.csv": "376dfa4c9bcdde70171d4568a15e332890ecedd4d1333402bc89291d69065e5f",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_714ppm.csv": "f89ccb08df6170d600406bb6303c9d743b80980737d243730f32f3ebd3136f55",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_728ppm.csv": "bb66f967038e2c210337d614aa93c0f223fd75113f50adf28ec040cab32e544b",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_742ppm.csv": "7e8afc10d97a7a60f8b23cc37f8db0829104eff273a56ca122fcd5142e140f7a",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_756ppm.csv": "cef78d2277e1e5d3e27edb839ad8f2df232576e7cd016813ec29afc56f6b5b12",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_770ppm.csv": "690644de6fbd2ccb521f971347bce38cbd75689d1832e61af8d99a84d44b2fd7",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_784ppm.csv": "69627ac9f5a397c4dd9c6649e14bba76cbbaa91cd1e98b2fb675100ab3fd1ba0",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_798ppm.csv": "4401d234868efbdbbd596385525bb2ca06dae6d88b58cb50cb6abb323564f3f8",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_812ppm.csv": "44dc48a87fd459528b1f8115da45e2b20c2ea89afa8080214298c6a4ed72c1ac",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_826ppm.csv": "701beff09c19cb0db42048fcc038cb438835fecd1919f78c06f55fe24e1f87fa",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_840ppm.csv": "2f375a02b8dad3acde0731f63a610219ae48cf921521c118c71801b32eafa9a7",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_854ppm.csv": "16d55fad4f149ed2dc6b8bd52528ebe3258e4f0b659eb380be6a0ecc0dfc34dd",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_868ppm.csv": "688330ad7f02acc2062fa7e8cbdf2e099177fdea11f6c94734bc75c10f9e164d",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_882ppm.csv": "f9997105a5794f50955b362231f30fde70ea94f4a214c95ab61d80ce4c233fac",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_896ppm.csv": "551e47a062f71ae488171e339a26441c36648afc88606c51fa57dcd9b6c24fef",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_903ppm.csv": "ab5e7256cdb6db777da19ee5eea37773cee6d3b5dd3e26a230010b7b28b06255",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_906ppm.csv": "0ce1d6ff4d4ab43f709aee07305f0a183760b86d2bbf4a12ba5366ec4b1337d8",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_907ppm.csv": "60c6d3801b98c9549a8d0869f1724e424197db20cb5373fc08fc1d0e191345b8",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCPlaSim/data/results/paper/state_means_285ppm.csv": "6c2e3b63edcf65ec3c81a4af8fcb49157633bf5710313c14728cf49e65616eb3",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCPlaSim/data/results/paper/state_means_360ppm.csv": "fcffd3b38176c66bf68376a5c17c505b5f4f0c4ada853f9f4393626ec94e8f16",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCBoussinesq/data/paper/resilience_vs_gamma_boussinesq.json": "a7291092a592306ff368281aa7b8c3a74a60274e3ac543e96609e36bf4e03554",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCClimberX/results/deep_readout/resilience_all_nominal5000_20261126/analysis_metadata.json": "40a6da5776aa63c6391734bbb42ca8f055ba136a59f08015ada3f0d9a89a74f5",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCClimberX/results/deep_readout/resilience_all_nominal5000_20261126/run_returns.csv": "7fdbeb373499eb4d4ff2a9c0618be202de41b531c159238a6ef03f5db67b113d"
+  },
+  "plot_script_sha256": "c35fd98979174052608d6b27d67ca6e0dae5a692d3702c4e6738de45e56af867",
+  "layout": "Original 2-column, 3-row panels and model legend; hollow CLIMBER-X provisional markers, coverage bars and finite-horizon note added",
+  "boussinesq_units": "Converted paper values share the existing axes; native values retained in input CSV",
+  "boussinesq_conversion_provenance": "/Users/andreasmorr/Projects/AMOCResilience/AMOCBoussinesq/data/paper/resilience_vs_gamma_boussinesq.json",
+  "boussinesq_transport_mapping": {
+    "relation": "q_Sv = 17 * q_model / 3.8504186364706925",
+    "sv_per_model_streamfunction": 4.415104331507771,
+    "reference_transport_Sv": 17.0,
+    "reference_model_transport": 3.8504186364706925,
+    "reference_gamma": 0.0,
+    "reference_run": "data/paper_experiment/9ee8a22cc649",
+    "reference_diagnostic": "signed largest-magnitude extremum of -psi over depth at 26 N",
+    "observational_basis": "RAPID April 2004--December 2020 mean 16.9 +/- 1.2 Sv; rounded to 17 Sv",
+    "reference": "https://doi.org/10.1098/rsta.2022.0188",
+    "scope": "One constant for every forcing, attractor and streamfunction field",
+    "caveat": "Empirical amplitude normalization; modern observations do not calibrate a preindustrial state or all physical model parameters",
+    "full_dimensional_calibration": false
+  },
+  "amoc_endpoint_circles": {
+    "3-box": "Last plotted ON point approaching the AMOC-on bifurcation",
+    "Boussinesq": "Last verified stable ON state; not a certified bifurcation"
+  },
+  "boussinesq_co2_coordinate": "C_ppm = 280 * 2**(gamma / 0.07)",
+  "boussinesq_co2_is_calibrated": false,
+  "boussinesq_unavailable_on_gammas": [
+    0.109,
+    0.1095,
+    0.11
+  ],
+  "local_resilience_anomalies": "Boussinesq and CLIMBER-X: perturbed minus unperturbed control at matching times",
+  "climberx_analysis_provenance": "/Users/andreasmorr/Projects/AMOCResilience/AMOCClimberX/results/deep_readout/resilience_all_nominal5000_20261126/analysis_metadata.json",
+  "climberx_analysis": {
+    "metadata_path": "/Users/andreasmorr/Projects/AMOCResilience/AMOCClimberX/results/deep_readout/resilience_all_nominal5000_20261126/analysis_metadata.json",
+    "run_returns_path": "/Users/andreasmorr/Projects/AMOCResilience/AMOCClimberX/results/deep_readout/resilience_all_nominal5000_20261126/run_returns.csv",
+    "created_at_utc": "2026-11-26T19:00:10.166198+00:00",
+    "requested_horizon_years": 5000,
+    "strict_common_horizon_years": 4700,
+    "n_grid": 1215,
+    "n_short_grid": 4,
+    "settings": {
+      "grid_prefix": "n1000t600",
+      "stability_prefix": "stab_e001_gc",
+      "readout_variables": [
+        "s_boxNA_deep",
+        "s_boxTrop_deep"
+      ],
+      "depth_centre_cutoffs_m": {
+        "north": 1000.0,
+        "tropical": 600.0
+      },
+      "convergence_radius_psu": 0.05,
+      "stability_radius_psu": 0.01,
+      "fit_start_year": 10,
+      "fit_end_year": 150,
+      "observation_spacing_years": 1,
+      "initial_target_tolerance_psu": 1e-08,
+      "strong_from_co2_ppm": 345.0,
+      "reference": "Zero-perturbation grid control at requested horizon T=5000; actual observed run endpoints may be earlier",
+      "shock": "Euclidean initial perturbed-minus-initial-control deep salinity displacement",
+      "amoc_strength": "Recomputed and verified raw source equilibrium AMOC mean over years 19501\u201320000"
+    },
+    "provisional_co2_ppm": [
+      360.0,
+      400.0,
+      570.0,
+      600.0
+    ],
+    "short_trajectories": [
+      {
+        "name": "n1000t600_360ppm_nap1.00_trp1.00_gc",
+        "co2_ppm": 360.0,
+        "observed_endpoint_year": 4800.0,
+        "estimated_returned_by_horizon": true,
+        "assumption_kind": "recovered_classification_persists"
+      },
+      {
+        "name": "n1000t600_400ppm_nap1.50_trm1.00_gc",
+        "co2_ppm": 400.0,
+        "observed_endpoint_year": 4700.0,
+        "estimated_returned_by_horizon": true,
+        "assumption_kind": "recovered_classification_persists"
+      },
+      {
+        "name": "n1000t600_570ppm_nap0.00_trm2.00_gc",
+        "co2_ppm": 570.0,
+        "observed_endpoint_year": 4700.0,
+        "estimated_returned_by_horizon": false,
+        "assumption_kind": "collapsed_nonreturn_classification_persists"
+      },
+      {
+        "name": "n1000t600_600ppm_nap1.50_trm1.00_gc",
+        "co2_ppm": 600.0,
+        "observed_endpoint_year": 4700.0,
+        "estimated_returned_by_horizon": true,
+        "assumption_kind": "recovered_classification_persists"
+      }
+    ],
+    "interpretation": "Nominal 5000-year finite-horizon estimates. Short records assume their observed endpoint classification persists; exact year-5000 outcomes remain unknown. Coverage bounds permit either missing outcome and are not confidence intervals. No salinity samples are extrapolated.",
+    "provisional_measures": [
+      "basin_volume",
+      "mean_convergence_time",
+      "median_convergence_time",
+      "min_critical_shock"
+    ]
+  },
+  "panel_units": {
+    "local_resilience": "yr^-1 for 3-box, Boussinesq and CLIMBER-X; PlaSim proxy in (1e-3 psu)^-1",
+    "mean_convergence_time": "yr",
+    "basin_volume": "psu^2; sampled basin area, with CLIMBER-X a finite-horizon returned-area estimate",
+    "min_critical_shock": "psu; CLIMBER-X smallest tested shock not returned by the nominal horizon"
+  },
+  "basin_area_conversion": {
+    "models": [
+      "3-box",
+      "Boussinesq",
+      "CLIMBER-X"
+    ],
+    "half_width_psu": 2.0,
+    "sampled_area_psu2": 16.0,
+    "formula": "basin fraction multiplied by sampled area",
+    "estimator": "Original sampling weights retained; source CSVs store fractions"
+  },
+  "box_critical_shock_conversion": {
+    "factor": 10.0,
+    "from": "internal salinity units",
+    "to": "psu"
+  },
+  "other_model_values": "Read from the recorded source CSVs; 3-box critical shocks converted to psu and basin fractions to psu^2 for display"
+}

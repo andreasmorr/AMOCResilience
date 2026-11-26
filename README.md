@@ -103,5 +103,11 @@ latexmk -pdf SI.tex
 Before regenerating the synthesis figure, export Boussinesq paper units using
 `python AMOCBoussinesq/scripts/export_paper_resilience.py`. Canonical model
 values and provenance remain unchanged; see that model's `PAPERINFO.md` for
-reporting conversions and the illustrative CO2 coordinate. Keep the CLIMBER-X
-historical paper CSV selected until the manuscript is revised for deep-box runs.
+reporting conversions and the illustrative CO2 coordinate. The synthesis now
+selects the versioned CLIMBER-X deep-box bundle at
+`AMOCClimberX/results/deep_readout/resilience_all_nominal5000_20261126/`.
+It uses a nominal 5000-year horizon, explicitly flags four records ending at
+4700–4800 years, and shows the resulting return-fraction bounds after the
+sampled-area conversion. The separate CLIMBER-X manuscript figures retain their historical data;
+manuscript text is unchanged by this synthesis update. Use `--climberx-csv` to select another export;
+the new bundle's `analysis_metadata.json` supplies its scientific provenance.
