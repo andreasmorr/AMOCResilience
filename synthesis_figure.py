@@ -25,9 +25,9 @@ Reads:
         Paper values use the shared plotting-unit conversions; native values
         and assumptions are retained in the export and its provenance JSON.
 
-    AMOCClimberX/results/deep_readout/resilience_all_nominal5000_20261126/resilience_metrics.csv
-        All 15 deep-box levels at nominal 5000 years; four shorter records
-        retain provisional flags, coverage bounds, and analysis provenance.
+    AMOCClimberX/results/deep_readout/resilience_nominal5000_20261127/resilience_metrics.csv
+        All 15 deep-box levels at a nominal 5000-year horizon, with analysis
+        provenance.
 
 Outputs: plots/synthesis_figure.png, .pdf and .json
 
@@ -76,10 +76,8 @@ BOX_CSV        = UMBRELLA / "AMOCBox"        / "data" / "paper" / "resilience_vs
 PLASIM_CSV     = UMBRELLA / "AMOCPlaSim"    / "data" / "results" / "resilience_metrics.csv"
 BOUSSINESQ_CSV = UMBRELLA / "AMOCBoussinesq" / "data" / "paper" / "resilience_vs_gamma_boussinesq.csv"
 CLIMBERX_CSV = (UMBRELLA / "AMOCClimberX" / "results" / "deep_readout"
-               / "resilience_all_nominal5000_20261126" / "resilience_metrics.csv")
+               / "resilience_nominal5000_20261127" / "resilience_metrics.csv")
 CLIMBERX_LEVELS = (285, 300, 315, 330, 345, 360, 385, 400, 430, 460, 490, 510, 540, 570, 600)
-CLIMBERX_RETURN_MEASURES = {"mean_convergence_time", "median_convergence_time",
-                           "basin_volume", "min_critical_shock"}
 
 # Maximum parameter values; rows beyond these are excluded (None = no cutoff)
 BOX_MAX_CO2      = None
@@ -223,15 +221,8 @@ def load_boussinesq() -> pd.DataFrame | None:
     return df
 
 
-def _boolean_column(values: pd.Series, name: str) -> pd.Series:
-    parsed = values.astype(str).str.lower().map({"true": True, "false": False})
-    if parsed.isna().any():
-        raise ValueError(f"Invalid Boolean column: {name}")
-    return parsed.astype(bool)
-
-
 def load_climberx() -> pd.DataFrame:
-    """Load the verified nominal-horizon export, preserving censoring evidence."""
+    """Load the verified nominal-horizon deep-box export."""
     metadata_path = CLIMBERX_CSV.parent / "analysis_metadata.json"
     returns_path = CLIMBERX_CSV.parent / "run_returns.csv"
     metadata = json.loads(metadata_path.read_text())
@@ -251,10 +242,9 @@ def load_climberx() -> pd.DataFrame:
             or (settings["fit_start_year"], settings["fit_end_year"]) != (10, 150)):
         raise ValueError("Unexpected CLIMBER-X deep-box horizon or analysis settings")
     df = pd.read_csv(CLIMBERX_CSV)
-    required = {"co2_ppm", "measure", "value", "attractor", "horizon_years", "provisional",
-                "lower", "upper", "n_censored", "reason", "observed_endpoint_min_year"}
+    required = {"co2_ppm", "measure", "value", "attractor", "horizon_years", "reason"}
     if not required.issubset(df.columns):
-        raise ValueError("CLIMBER-X export must retain provisional flags and coverage bounds")
+        raise ValueError("CLIMBER-X export lacks required metric columns")
     expected_pairs = {(co2, measure) for co2 in CLIMBERX_LEVELS for measure in metadata["metric_names"]}
     if (len(df) != 135 or len(metadata["metric_names"]) != 9
             or set(zip(df.co2_ppm, df.measure)) != expected_pairs
@@ -263,50 +253,30 @@ def load_climberx() -> pd.DataFrame:
             or np.isinf(df.value).any()
             or df.loc[df.value.isna(), "reason"].fillna("").eq("").any()):
         raise ValueError("Incomplete or invalid CLIMBER-X 15-level metric export")
-    df["provisional"] = _boolean_column(df.provisional, "provisional")
     returns = pd.read_csv(returns_path)
     if (len(returns) != 1215 or returns.name.nunique() != 1215
             or returns.groupby("co2_ppm").size().to_dict() != {co2: 81 for co2 in CLIMBERX_LEVELS}):
         raise ValueError("CLIMBER-X export must retain all 81 trajectories at every level")
-    short = returns[_boolean_column(returns.censored_at_horizon, "censored_at_horizon")].copy()
-    if (len(short) != metadata["n_censored_grid"]
-            or not set(short.name).issubset(metadata["short_trajectory_allowlist"])
-            or not short.returned_by_horizon.isna().all()
-            or not short.observed_endpoint_year.between(4700, 4999).all()
-            or set(short.co2_ppm) != set(metadata["provisional_co2_ppm"])):
-        raise ValueError("CLIMBER-X shorter trajectories lack explicit unknown outcomes")
-    short["estimated_returned_by_horizon"] = _boolean_column(
-        short.estimated_returned_by_horizon, "estimated_returned_by_horizon")
     for co2 in CLIMBERX_LEVELS:
         rows = df[df.co2_ppm == co2]
-        count = int(short.co2_ppm.eq(co2).sum())
-        expected_provisional = rows.measure.isin(CLIMBERX_RETURN_MEASURES) & bool(count)
-        if (not rows.provisional.eq(expected_provisional).all()
-                or not rows.n_censored.eq(count).all()
-                or not rows.attractor.eq("modern" if co2 < 345 else "strong").all()):
-            raise ValueError(f"CLIMBER-X provisional flags or branch labels disagree at {co2} ppm")
-        basin = rows[rows.measure == "basin_volume"].iloc[0]
-        if not (0 <= basin.lower <= basin.value <= basin.upper <= 1
-                and np.isclose(basin.upper - basin.lower, count / 81., rtol=0., atol=1.e-12)):
-            raise ValueError(f"CLIMBER-X return-fraction bounds disagree at {co2} ppm")
-    # Bounds and point estimates must share the same displayed area units.
+        if not rows.attractor.eq("modern" if co2 < 345 else "strong").all():
+            raise ValueError(f"CLIMBER-X branch labels disagree at {co2} ppm")
+    # Basin fractions are displayed as sampled areas, like the other models.
     basin = df.measure.eq("basin_volume")
-    df.loc[basin, ["value", "lower", "upper"]] *= BASIN_SAMPLE_AREA_PSU2
+    df.loc[basin, "value"] *= BASIN_SAMPLE_AREA_PSU2
     if CLIMBERX_MIN_CO2 is not None:
         df = df[df["co2_ppm"] >= CLIMBERX_MIN_CO2]
     if CLIMBERX_MAX_CO2 is not None:
         df = df[df["co2_ppm"] <= CLIMBERX_MAX_CO2]
+    setting_keys = ("grid_prefix", "stability_prefix", "readout_variables", "depth_centre_cutoffs_m",
+                    "convergence_radius_psu", "stability_radius_psu", "fit_start_year",
+                    "fit_end_year", "strong_from_co2_ppm")
     df.attrs["analysis"] = {
         "metadata_path": str(metadata_path), "run_returns_path": str(returns_path),
         "created_at_utc": metadata["created_at_utc"],
         "requested_horizon_years": metadata["requested_horizon_years"],
-        "strict_common_horizon_years": metadata["strict_common_horizon_years"],
-        "n_grid": len(returns), "n_short_grid": len(short), "settings": settings,
-        "provisional_co2_ppm": metadata["provisional_co2_ppm"],
-        "short_trajectories": short[["name", "co2_ppm", "observed_endpoint_year",
-                                     "estimated_returned_by_horizon", "assumption_kind"]].to_dict("records"),
-        "interpretation": "Nominal 5000-year finite-horizon estimates. Short records assume their observed endpoint classification persists; exact year-5000 outcomes remain unknown. Coverage bounds permit either missing outcome and are not confidence intervals. No salinity samples are extrapolated.",
-        "provisional_measures": sorted(CLIMBERX_RETURN_MEASURES),
+        "n_grid": len(returns),
+        "settings": {key: settings[key] for key in setting_keys if key in settings},
     }
     return df
 
@@ -527,21 +497,11 @@ def _plot_panel(ax, box_measure, bous_measure, cx_measure, plasim_col,
             s = sub_cx[sub_cx["attractor"] == state].sort_values("co2_ppm")
             if s.empty:
                 continue
-            ax.plot(s["co2_ppm"], s["value"], color=COL_CLIMBERX,
-                    lw=1.5, zorder=4, label=lbl)
-            for provisional, face in ((False, COL_CLIMBERX), (True, "white")):
-                selected = s[s["provisional"] == provisional]
-                ax.plot(selected["co2_ppm"], selected["value"], linestyle="none",
-                        color=COL_CLIMBERX, marker=marker, markersize=ms,
-                        markerfacecolor=face, markeredgewidth=.9, zorder=5)
-            bounded = s[np.isfinite(s["value"]) & np.isfinite(s["lower"])
-                        & np.isfinite(s["upper"]) & (s["upper"] - s["lower"] > 1.e-12)]
-            if not bounded.empty:
-                errors = np.maximum(0., np.vstack((bounded["value"] - bounded["lower"],
-                                                   bounded["upper"] - bounded["value"])))
-                ax.errorbar(bounded["co2_ppm"], bounded["value"], yerr=errors,
-                            fmt="none", ecolor=COL_CLIMBERX, elinewidth=.8,
-                            capsize=2, capthick=.8, zorder=4.5)
+            ax.plot(
+                s["co2_ppm"].values, s["value"].values,
+                color=COL_CLIMBERX, lw=1.5, marker=marker, markersize=ms,
+                zorder=4, label=lbl,
+            )
 
 
     if arrow_at is not None:
@@ -685,19 +645,6 @@ def main() -> None:
     )
 
     climber_analysis = df_climberx.attrs["analysis"]
-    short_years = [r["observed_endpoint_year"] for r in climber_analysis["short_trajectories"]]
-    short_count = climber_analysis["n_short_grid"]
-    if short_years:
-        fig.text(.5, -.105,
-                 f"CLIMBER-X: deep boxes, nominal 5,000 yr; hollow markers: {short_count} records ending at "
-                 f"{min(short_years):,.0f}–{max(short_years):,.0f} yr.",
-                 ha="center", fontsize=6.3)
-        fig.text(.5, -.13,
-                 "Endpoint classifications assumed to persist; bars show coverage bounds, not confidence intervals.",
-                 ha="center", fontsize=6.3)
-    else:
-        fig.text(.5, -.105, "CLIMBER-X: deep boxes; all grid trajectories observed through 5,000 yr.",
-                 ha="center", fontsize=6.3)
 
     out_path = args.output.resolve().with_suffix(".png")
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -718,7 +665,7 @@ def main() -> None:
         "source_files_sha256": {str(path): hashlib.sha256(path.read_bytes()).hexdigest()
                                 for path in sources if path.is_file()},
         "plot_script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-        "layout": "Original 2-column, 3-row panels and model legend; hollow CLIMBER-X provisional markers, coverage bars and finite-horizon note added",
+        "layout": "Original 2-column, 3-row panels and model legend",
         "boussinesq_units": "Converted paper values share the existing axes; native values retained in input CSV",
         "boussinesq_conversion_provenance": str(conversion_provenance),
         "boussinesq_transport_mapping": conversion_metadata.get("transport_mapping", {}),

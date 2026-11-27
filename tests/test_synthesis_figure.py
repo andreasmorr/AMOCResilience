@@ -1,4 +1,4 @@
-"""Check CLIMBER-X synthesis provenance, censoring, and displayed units."""
+"""Check CLIMBER-X synthesis provenance, branch labels, and displayed units."""
 import hashlib
 import importlib.util
 import json
@@ -42,51 +42,41 @@ class ClimberSynthesisTests(unittest.TestCase):
         metadata["output_sha256"][self.csv.name] = hashlib.sha256(self.csv.read_bytes()).hexdigest()
         path.write_text(json.dumps(metadata))
 
-    def test_all_levels_bounds_and_independent_local_fit(self):
+    def test_all_levels_and_area_units(self):
         raw = pd.read_csv(self.csv)
         frame = synthesis.load_climberx()
         self.assertEqual(len(frame), 135)
         self.assertEqual(set(frame.co2_ppm), set(synthesis.CLIMBERX_LEVELS))
         mask = frame.measure.eq("basin_volume")
-        np.testing.assert_allclose(frame.loc[mask, ["value", "lower", "upper"]],
-                                   raw.loc[mask, ["value", "lower", "upper"]] * 16)
-        self.assertEqual(frame.provisional.sum(), 16)
-        self.assertFalse(frame.loc[frame.measure.eq("local_resilience"), "provisional"].any())
+        np.testing.assert_allclose(frame.loc[mask, "value"], raw.loc[mask, "value"] * 16)
+        local = frame.measure.eq("local_resilience")
+        np.testing.assert_allclose(frame.loc[local, "value"], raw.loc[local, "value"])
         self.assertTrue(frame.loc[(frame.co2_ppm == 360) & frame.measure.eq("min_critical_shock"), "value"].isna().all())
-        self.assertEqual(frame.attrs["analysis"]["n_short_grid"], 4)
+        self.assertEqual(frame.attrs["analysis"]["n_grid"], 1215)
 
     def test_modified_csv_rejected_by_provenance_hash(self):
         self.csv.write_text(self.csv.read_text() + "\n")
         with self.assertRaisesRegex(ValueError, "hash mismatch"):
             synthesis.load_climberx()
 
-    def test_false_certainty_rejected_even_with_matching_hash(self):
+    def test_wrong_branch_label_rejected_even_with_matching_hash(self):
         frame = pd.read_csv(self.csv)
-        frame.loc[frame.co2_ppm.eq(400) & frame.measure.eq("basin_volume"), "provisional"] = False
+        frame.loc[frame.co2_ppm.eq(330) & frame.measure.eq("basin_volume"), "attractor"] = "strong"
         self.rewrite(frame)
-        with self.assertRaisesRegex(ValueError, "provisional flags"):
+        with self.assertRaisesRegex(ValueError, "branch labels"):
             synthesis.load_climberx()
 
-    def test_wrong_bounds_rejected_even_with_matching_hash(self):
-        frame = pd.read_csv(self.csv)
-        mask = frame.co2_ppm.eq(570) & frame.measure.eq("basin_volume")
-        frame.loc[mask, "upper"] = frame.loc[mask, "lower"]
-        self.rewrite(frame)
-        with self.assertRaisesRegex(ValueError, "bounds disagree"):
-            synthesis.load_climberx()
-
-    def test_provisional_hollow_markers_and_area_errorbars(self):
+    def test_filled_markers_without_errorbars(self):
         frame = synthesis.load_climberx()
         fig, axis = plt.subplots()
         self.addCleanup(plt.close, fig)
         synthesis._plot_panel(axis, None, None, "basin_volume", None, "area", "area",
                               None, None, None, frame)
-        hollow = [line for line in axis.lines
-                  if line.get_markerfacecolor() == "white" and len(line.get_xdata())]
-        self.assertEqual(set(hollow[0].get_xdata()), {360., 400., 570., 600.})
-        bars = [segment for collection in axis.collections for segment in collection.get_segments()]
-        self.assertEqual(len(bars), 4)
-        np.testing.assert_allclose([segment[1, 1] - segment[0, 1] for segment in bars], 16 / 81)
+        self.assertFalse([line for line in axis.lines if line.get_markerfacecolor() == "white"])
+        self.assertFalse([segment for collection in axis.collections
+                          for segment in collection.get_segments()])
+        plotted = sorted(x for line in axis.lines for x in line.get_xdata())
+        self.assertEqual(plotted, sorted(float(co2) for co2 in synthesis.CLIMBERX_LEVELS))
 
 
 if __name__ == "__main__":

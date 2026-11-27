@@ -3,7 +3,7 @@
     "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/resilience_vs_co2_boxmodel.csv": "a6f10d86a7ed54009e513cb09a0c660e0cb6f3bc3510d2fc630d5a6f68e33671",
     "/Users/andreasmorr/Projects/AMOCResilience/AMOCPlaSim/data/results/resilience_metrics.csv": "95c8257b92d1cb1fd013132258278d42dafddf8874196a4c713942a427fbc653",
     "/Users/andreasmorr/Projects/AMOCResilience/AMOCBoussinesq/data/paper/resilience_vs_gamma_boussinesq.csv": "0f86874c5ecb113281efdd2f2fd58a3de3877bddebe867de4b70b37c5d7e9379",
-    "/Users/andreasmorr/Projects/AMOCResilience/AMOCClimberX/results/deep_readout/resilience_all_nominal5000_20261126/resilience_metrics.csv": "ea21a48977857dbc2636736e177a787b3b5c7b14db04eb9db2032ecc3770b7dd",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCClimberX/results/deep_readout/resilience_nominal5000_20261127/resilience_metrics.csv": "4956d6bef7499d80917ecde1bbb0867b60b89748befa2337d8d7ff55d53c8ecf",
     "/Users/andreasmorr/Projects/AMOCResilience/amoc_plot_style.py": "8f13051c25df357af378133880acd3b26d86a4ee7a3ae766e9a701832ef9b1ce",
     "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_280ppm.csv": "ab25982294df6e0055b17e96cf8d56afaf9803bb7bdc10521e459495aacd7e4a",
     "/Users/andreasmorr/Projects/AMOCResilience/AMOCBox/data/paper/attractors_294ppm.csv": "851f4bc261b0d44ade8502bcef47e3243505aeb44a64b09a785f117ea73c7848",
@@ -56,11 +56,11 @@
     "/Users/andreasmorr/Projects/AMOCResilience/AMOCPlaSim/data/results/paper/state_means_285ppm.csv": "6c2e3b63edcf65ec3c81a4af8fcb49157633bf5710313c14728cf49e65616eb3",
     "/Users/andreasmorr/Projects/AMOCResilience/AMOCPlaSim/data/results/paper/state_means_360ppm.csv": "fcffd3b38176c66bf68376a5c17c505b5f4f0c4ada853f9f4393626ec94e8f16",
     "/Users/andreasmorr/Projects/AMOCResilience/AMOCBoussinesq/data/paper/resilience_vs_gamma_boussinesq.json": "a7291092a592306ff368281aa7b8c3a74a60274e3ac543e96609e36bf4e03554",
-    "/Users/andreasmorr/Projects/AMOCResilience/AMOCClimberX/results/deep_readout/resilience_all_nominal5000_20261126/analysis_metadata.json": "40a6da5776aa63c6391734bbb42ca8f055ba136a59f08015ada3f0d9a89a74f5",
-    "/Users/andreasmorr/Projects/AMOCResilience/AMOCClimberX/results/deep_readout/resilience_all_nominal5000_20261126/run_returns.csv": "7fdbeb373499eb4d4ff2a9c0618be202de41b531c159238a6ef03f5db67b113d"
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCClimberX/results/deep_readout/resilience_nominal5000_20261127/analysis_metadata.json": "5336084938ad62f9c2816e3987dda79d92bad887f1deb8e8b747bc29904d7d90",
+    "/Users/andreasmorr/Projects/AMOCResilience/AMOCClimberX/results/deep_readout/resilience_nominal5000_20261127/run_returns.csv": "53ef18a9e91bd88ddbcd939376f2233a3ca02754c0fff63e5cc31808b004319e"
   },
-  "plot_script_sha256": "c35fd98979174052608d6b27d67ca6e0dae5a692d3702c4e6738de45e56af867",
-  "layout": "Original 2-column, 3-row panels and model legend; hollow CLIMBER-X provisional markers, coverage bars and finite-horizon note added",
+  "plot_script_sha256": "65c9f3ea537c4d4be8901c8ad599b57f055b96d64e8f3ef3a6acdd7ea1cfac07",
+  "layout": "Original 2-column, 3-row panels and model legend",
   "boussinesq_units": "Converted paper values share the existing axes; native values retained in input CSV",
   "boussinesq_conversion_provenance": "/Users/andreasmorr/Projects/AMOCResilience/AMOCBoussinesq/data/paper/resilience_vs_gamma_boussinesq.json",
   "boussinesq_transport_mapping": {
@@ -89,15 +89,13 @@
     0.11
   ],
   "local_resilience_anomalies": "Boussinesq and CLIMBER-X: perturbed minus unperturbed control at matching times",
-  "climberx_analysis_provenance": "/Users/andreasmorr/Projects/AMOCResilience/AMOCClimberX/results/deep_readout/resilience_all_nominal5000_20261126/analysis_metadata.json",
+  "climberx_analysis_provenance": "/Users/andreasmorr/Projects/AMOCResilience/AMOCClimberX/results/deep_readout/resilience_nominal5000_20261127/analysis_metadata.json",
   "climberx_analysis": {
-    "metadata_path": "/Users/andreasmorr/Projects/AMOCResilience/AMOCClimberX/results/deep_readout/resilience_all_nominal5000_20261126/analysis_metadata.json",
-    "run_returns_path": "/Users/andreasmorr/Projects/AMOCResilience/AMOCClimberX/results/deep_readout/resilience_all_nominal5000_20261126/run_returns.csv",
-    "created_at_utc": "2026-11-26T19:00:10.166198+00:00",
+    "metadata_path": "/Users/andreasmorr/Projects/AMOCResilience/AMOCClimberX/results/deep_readout/resilience_nominal5000_20261127/analysis_metadata.json",
+    "run_returns_path": "/Users/andreasmorr/Projects/AMOCResilience/AMOCClimberX/results/deep_readout/resilience_nominal5000_20261127/run_returns.csv",
+    "created_at_utc": "2026-11-26T23:38:10.600169+00:00",
     "requested_horizon_years": 5000,
-    "strict_common_horizon_years": 4700,
     "n_grid": 1215,
-    "n_short_grid": 4,
     "settings": {
       "grid_prefix": "n1000t600",
       "stability_prefix": "stab_e001_gc",
@@ -113,56 +111,8 @@
       "stability_radius_psu": 0.01,
       "fit_start_year": 10,
       "fit_end_year": 150,
-      "observation_spacing_years": 1,
-      "initial_target_tolerance_psu": 1e-08,
-      "strong_from_co2_ppm": 345.0,
-      "reference": "Zero-perturbation grid control at requested horizon T=5000; actual observed run endpoints may be earlier",
-      "shock": "Euclidean initial perturbed-minus-initial-control deep salinity displacement",
-      "amoc_strength": "Recomputed and verified raw source equilibrium AMOC mean over years 19501\u201320000"
-    },
-    "provisional_co2_ppm": [
-      360.0,
-      400.0,
-      570.0,
-      600.0
-    ],
-    "short_trajectories": [
-      {
-        "name": "n1000t600_360ppm_nap1.00_trp1.00_gc",
-        "co2_ppm": 360.0,
-        "observed_endpoint_year": 4800.0,
-        "estimated_returned_by_horizon": true,
-        "assumption_kind": "recovered_classification_persists"
-      },
-      {
-        "name": "n1000t600_400ppm_nap1.50_trm1.00_gc",
-        "co2_ppm": 400.0,
-        "observed_endpoint_year": 4700.0,
-        "estimated_returned_by_horizon": true,
-        "assumption_kind": "recovered_classification_persists"
-      },
-      {
-        "name": "n1000t600_570ppm_nap0.00_trm2.00_gc",
-        "co2_ppm": 570.0,
-        "observed_endpoint_year": 4700.0,
-        "estimated_returned_by_horizon": false,
-        "assumption_kind": "collapsed_nonreturn_classification_persists"
-      },
-      {
-        "name": "n1000t600_600ppm_nap1.50_trm1.00_gc",
-        "co2_ppm": 600.0,
-        "observed_endpoint_year": 4700.0,
-        "estimated_returned_by_horizon": true,
-        "assumption_kind": "recovered_classification_persists"
-      }
-    ],
-    "interpretation": "Nominal 5000-year finite-horizon estimates. Short records assume their observed endpoint classification persists; exact year-5000 outcomes remain unknown. Coverage bounds permit either missing outcome and are not confidence intervals. No salinity samples are extrapolated.",
-    "provisional_measures": [
-      "basin_volume",
-      "mean_convergence_time",
-      "median_convergence_time",
-      "min_critical_shock"
-    ]
+      "strong_from_co2_ppm": 345.0
+    }
   },
   "panel_units": {
     "local_resilience": "yr^-1 for 3-box, Boussinesq and CLIMBER-X; PlaSim proxy in (1e-3 psu)^-1",

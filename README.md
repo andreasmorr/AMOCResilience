@@ -105,9 +105,8 @@ Before regenerating the synthesis figure, export Boussinesq paper units using
 values and provenance remain unchanged; see that model's `PAPERINFO.md` for
 reporting conversions and the illustrative CO2 coordinate. The synthesis now
 selects the versioned CLIMBER-X deep-box bundle at
-`AMOCClimberX/results/deep_readout/resilience_all_nominal5000_20261126/`.
-It uses a nominal 5000-year horizon, explicitly flags four records ending at
-4700–4800 years, and shows the resulting return-fraction bounds after the
-sampled-area conversion. The separate CLIMBER-X manuscript figures retain their historical data;
-manuscript text is unchanged by this synthesis update. Use `--climberx-csv` to select another export;
-the new bundle's `analysis_metadata.json` supplies its scientific provenance.
+`AMOCClimberX/results/deep_readout/resilience_nominal5000_20261127/`.
+It uses a nominal 5000-year horizon and displays basin fractions as sampled
+areas. The separate CLIMBER-X manuscript figures retain their historical data.
+Use `--climberx-csv` to select another export; the new bundle's
+`analysis_metadata.json` supplies its scientific provenance.
