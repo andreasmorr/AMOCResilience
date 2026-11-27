@@ -22,7 +22,6 @@ FIGURES = {
     "plasim_paper.png": "AMOCPlaSim/plots/plasim_paper.png",
     "synthesis_figure.png": "plots/synthesis_figure.png",
     "boussinesq_equilibria.pdf": "AMOCBoussinesq/plots/paper/boussinesq_equilibria.pdf",
-    "box_traj_315_10ky_gc_narrow.png": "AMOCClimberX/plots/box_traj_315_10ky_gc_narrow.png",
 }
 
 

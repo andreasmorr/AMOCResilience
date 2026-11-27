@@ -14,7 +14,7 @@ repository at `paper/` contains the manuscript and its figures for Overleaf.
 | `AMOCBoussinesq/` | Latitude-depth model, certified equilibria, perturbation and local-response experiments |
 | `AMOCClimberX/` | CLIMBER-X experiment setup, HPC workflows, and analysis |
 | `AMOCPlaSim/` | Analysis of existing PlaSim-LSG edge-track and equilibrium output |
-| `paper/` | Independent manuscript repository: `main.tex`, `SI.tex`, bibliography, eight figures |
+| `paper/` | Independent manuscript repository: `main.tex`, `SI.tex`, bibliography, seven figures |
 | `amoc_plot_style.py` | Shared plotting style |
 | `paper_figures.py` | Explicit paper-figure registry, publication helper, synchronization and checks |
 | `synthesis_figure.py` | Cross-model resilience figure and input-hash provenance |
@@ -73,14 +73,12 @@ the exact asset used by the manuscript into `paper/figures/`. Local alternate
 formats and provenance remain with the experiment. Custom Boussinesq/synthesis
 output paths are kept local so exploratory figures do not replace paper assets.
 
-CLIMBER-X paper regeneration needs raw output on the HPC system. Its current
-defaults describe newer deep-box experiments, while this manuscript still
-uses historical shallow experiments. Follow its README's explicit historical
-command to update `climberx_paper.png`. The supplementary
-`box_traj_315_10ky_gc_narrow.png` is retained as a historical snapshot in
-`AMOCClimberX/plots/`; its generating revision is documented in that README.
+CLIMBER-X paper regeneration runs on the HPC system using verified deep-box
+snapshots. Follow its README's snapshot command to update `climberx_paper.png`
+from the 285/430 ppm grids through model year 5000, then retrieve the figure
+and publish its local copy.
 
-After retrieving remote figure outputs, refresh all eight paper copies:
+After retrieving remote figure outputs, refresh all seven paper copies:
 
 ```sh
 python paper_figures.py sync
